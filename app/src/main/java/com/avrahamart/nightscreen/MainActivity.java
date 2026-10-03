@@ -169,6 +169,8 @@ public class MainActivity extends Activity {
         message.setGravity(Gravity.CENTER_VERTICAL | Gravity.RIGHT);
         message.setTextDirection(View.TEXT_DIRECTION_RTL);
         message.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_END);
+        message.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+        message.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         message.setSingleLine(false);
         message.setMaxLines(2);
         message.setEllipsize(null);
@@ -223,13 +225,13 @@ public class MainActivity extends Activity {
         controls.setGravity(Gravity.CENTER);
         controls.setPadding(dp(8), 0, dp(8), 0);
 
-        mediaPrev = mediaButton("◀");
-        mediaPrev.setTextSize(25);
-        mediaPrev.setTypeface(Typeface.DEFAULT_BOLD);
-        mediaPrev.setTextColor(Color.WHITE);
-        mediaPrev.setBackground(makeMediaButtonBackground());
-        mediaPrev.setOnClickListener(v -> sendPrevious());
-        controls.addView(mediaPrev, buttonParams());
+        mediaNext = mediaButton("▶");
+        mediaNext.setTextSize(25);
+        mediaNext.setTypeface(Typeface.DEFAULT_BOLD);
+        mediaNext.setTextColor(Color.WHITE);
+        mediaNext.setBackground(makeMediaButtonBackground());
+        mediaNext.setOnClickListener(v -> sendNext());
+        controls.addView(mediaNext, buttonParams());
 
         mediaPlayPause = mediaButton("▶");
         mediaPlayPause.setTextSize(22);
@@ -242,13 +244,13 @@ public class MainActivity extends Activity {
         playParams.rightMargin = dp(8);
         controls.addView(mediaPlayPause, playParams);
 
-        mediaNext = mediaButton("▶");
-        mediaNext.setTextSize(25);
-        mediaNext.setTypeface(Typeface.DEFAULT_BOLD);
-        mediaNext.setTextColor(Color.WHITE);
-        mediaNext.setBackground(makeMediaButtonBackground());
-        mediaNext.setOnClickListener(v -> sendNext());
-        controls.addView(mediaNext, buttonParams());
+        mediaPrev = mediaButton("◀");
+        mediaPrev.setTextSize(25);
+        mediaPrev.setTypeface(Typeface.DEFAULT_BOLD);
+        mediaPrev.setTextColor(Color.WHITE);
+        mediaPrev.setBackground(makeMediaButtonBackground());
+        mediaPrev.setOnClickListener(v -> sendPrevious());
+        controls.addView(mediaPrev, buttonParams());
 
         mediaMirror.addView(controls, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(54)));
