@@ -7,9 +7,6 @@ import android.content.ComponentName;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.Typeface;
 import android.media.MediaMetadata;
 import android.media.session.MediaController;
@@ -49,16 +46,11 @@ public class MainActivity extends Activity {
     private final int dateTextColor = Color.rgb(220, 220, 220);
 
     private LinearLayout mediaSetup;
-    private FrameLayout mediaMirror;
-    private ImageView albumArt;
+    private LinearLayout mediaMirror;
     private TextView mediaTitle;
-    private TextView mediaSubtitle;
     private TextView mediaPlayPause;
     private TextView mediaPrev;
     private TextView mediaNext;
-    private TextView mediaApp;
-    private TextView mediaOutput;
-    private MediaProgressView mediaProgress;
 
     private MediaSessionManager mediaSessionManager;
     private MediaController mediaController;
@@ -118,13 +110,13 @@ public class MainActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER_HORIZONTAL);
         root.setBackgroundColor(Color.BLACK);
-        root.setPadding(dp(24), dp(24), dp(24), dp(24));
+        root.setPadding(dp(16), dp(12), dp(16), dp(8));
 
         timeText = textView("--:--", 82, Color.rgb(247, 247, 247));
         timeText.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
         timeText.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams timeParams = matchWrap();
-        timeParams.topMargin = dp(54);
+        timeParams.topMargin = dp(28);
         root.addView(timeText, timeParams);
 
         gregorianText = textView("", 22, dateTextColor);
@@ -132,7 +124,7 @@ public class MainActivity extends Activity {
                 Typeface.create("sans-serif-medium", Typeface.NORMAL));
         gregorianText.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams gregParams = matchWrap();
-        gregParams.topMargin = dp(10);
+        gregParams.topMargin = dp(6);
         root.addView(gregorianText, gregParams);
 
         hebrewText = textView("", 22, dateTextColor);
@@ -142,7 +134,7 @@ public class MainActivity extends Activity {
         hebrewText.setTextDirection(View.TEXT_DIRECTION_ANY_RTL);
         hebrewText.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
         LinearLayout.LayoutParams hebParams = matchWrap();
-        hebParams.topMargin = dp(7);
+        hebParams.topMargin = dp(5);
         root.addView(hebrewText, hebParams);
 
         View spacer = new View(this);
@@ -158,166 +150,92 @@ public class MainActivity extends Activity {
         mediaSetup = new LinearLayout(this);
         mediaSetup.setOrientation(LinearLayout.HORIZONTAL);
         mediaSetup.setGravity(Gravity.CENTER_VERTICAL);
-        mediaSetup.setPadding(dp(14), dp(8), dp(10), dp(8));
-        mediaSetup.setBackgroundColor(Color.rgb(28, 28, 28));
+        mediaSetup.setPadding(dp(10), dp(4), dp(8), dp(4));
+        mediaSetup.setBackgroundColor(Color.BLACK);
         mediaSetup.setVisibility(View.GONE);
 
         TextView message = textView(
-                "כדי להציג את נגן המערכת יש לאפשר ל-Night Screen גישה להתראות",
-                14, Color.rgb(215, 215, 215));
+                "יש לאפשר גישה להתראות כדי להציג את נגן המערכת",
+                13, Color.rgb(200, 200, 200));
         message.setGravity(Gravity.CENTER_VERTICAL);
-        message.setSingleLine(false);
-        mediaSetup.addView(message, new LinearLayout.LayoutParams(0, dp(56), 1f));
+        message.setSingleLine(true);
+        message.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        mediaSetup.addView(message, new LinearLayout.LayoutParams(0, dp(48), 1f));
 
-        TextView openSettings = mediaButton("הפעל גישה");
-        openSettings.setTextSize(14);
+        TextView openSettings = mediaButton("הפעל");
+        openSettings.setTextSize(13);
         openSettings.setTextColor(Color.WHITE);
-        openSettings.setBackgroundColor(Color.rgb(58, 58, 58));
+        openSettings.setBackgroundColor(Color.rgb(45, 45, 45));
         openSettings.setOnClickListener(v -> openNotificationAccessSettings());
-        mediaSetup.addView(openSettings, new LinearLayout.LayoutParams(dp(104), dp(46)));
+        mediaSetup.addView(openSettings, new LinearLayout.LayoutParams(dp(72), dp(44)));
 
         int availableWidth = Math.max(
                 dp(1),
-                getResources().getDisplayMetrics().widthPixels - dp(48));
+                getResources().getDisplayMetrics().widthPixels - dp(32));
         LinearLayout.LayoutParams setupParams = new LinearLayout.LayoutParams(
-                Math.min(dp(760), availableWidth), dp(72));
+                Math.min(dp(760), availableWidth), dp(56));
         setupParams.gravity = Gravity.CENTER_HORIZONTAL;
-        setupParams.bottomMargin = dp(8);
+        setupParams.bottomMargin = dp(6);
         root.addView(mediaSetup, setupParams);
     }
 
     private void buildSystemMediaMirror(LinearLayout root) {
-        mediaMirror = new FrameLayout(this);
+        mediaMirror = new LinearLayout(this);
+        mediaMirror.setOrientation(LinearLayout.HORIZONTAL);
+        mediaMirror.setGravity(Gravity.CENTER_VERTICAL);
+        mediaMirror.setPadding(dp(8), dp(4), dp(8), dp(4));
+        mediaMirror.setBackgroundColor(Color.BLACK);
         mediaMirror.setVisibility(View.GONE);
 
-        android.graphics.drawable.GradientDrawable bg =
-                new android.graphics.drawable.GradientDrawable();
-        bg.setColor(Color.rgb(48, 48, 48));
-        bg.setCornerRadius(dp(28));
-        mediaMirror.setBackground(bg);
-        mediaMirror.setClipToOutline(true);
-        mediaMirror.setOutlineProvider(new android.view.ViewOutlineProvider() {
-            @Override public void getOutline(View view, android.graphics.Outline outline) {
-                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dp(28));
-            }
-        });
+        // Android 11-style compact media controls:
+        // left = previous, center = play/pause, right = next.
+        mediaPrev = mediaButton("‹");
+        mediaPrev.setTextSize(28);
+        mediaPrev.setTextColor(Color.WHITE);
+        mediaPrev.setBackgroundColor(Color.TRANSPARENT);
+        mediaPrev.setOnClickListener(v -> sendPrevious());
 
-        albumArt = new ImageView(this);
-        albumArt.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        mediaMirror.addView(albumArt, new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT));
-
-        View dim = new View(this);
-        dim.setBackgroundColor(Color.argb(125, 0, 0, 0));
-        mediaMirror.addView(dim, new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT));
-
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(20), dp(16), dp(20), dp(14));
-        mediaMirror.addView(content, new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT));
-
-        LinearLayout top = new LinearLayout(this);
-        top.setOrientation(LinearLayout.HORIZONTAL);
-        top.setGravity(Gravity.CENTER_VERTICAL);
-
-        mediaApp = textView("●", 18, Color.WHITE);
-        mediaApp.setGravity(Gravity.CENTER);
-        top.addView(mediaApp, new LinearLayout.LayoutParams(dp(34), dp(34)));
-
-        View topSpacer = new View(this);
-        top.addView(topSpacer, new LinearLayout.LayoutParams(0, 1, 1f));
-
-        mediaOutput = textView("הטלפון הזה", 12, Color.rgb(35, 35, 35));
-        mediaOutput.setGravity(Gravity.CENTER);
-        mediaOutput.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        android.graphics.drawable.GradientDrawable outputBg =
-                new android.graphics.drawable.GradientDrawable();
-        outputBg.setColor(Color.argb(225, 245, 245, 245));
-        outputBg.setCornerRadius(dp(18));
-        mediaOutput.setBackground(outputBg);
-        mediaOutput.setPadding(dp(12), 0, dp(12), 0);
-        top.addView(mediaOutput, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, dp(34)));
-
-        content.addView(top, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(38)));
-
-        View titleSpacer = new View(this);
-        content.addView(titleSpacer, new LinearLayout.LayoutParams(1, 0, 1f));
+        mediaMirror.addView(mediaPrev, new LinearLayout.LayoutParams(dp(52), dp(48)));
 
         mediaTitle = textView("", 17, Color.WHITE);
         mediaTitle.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         mediaTitle.setSingleLine(true);
-        content.addView(mediaTitle, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(25)));
+        mediaTitle.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        mediaTitle.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
 
-        mediaSubtitle = textView("", 14, Color.argb(215, 255, 255, 255));
-        mediaSubtitle.setSingleLine(true);
-        content.addView(mediaSubtitle, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(22)));
+        LinearLayout.LayoutParams titleParams =
+                new LinearLayout.LayoutParams(0, dp(48), 1f);
+        titleParams.leftMargin = dp(6);
+        titleParams.rightMargin = dp(6);
+        mediaMirror.addView(mediaTitle, titleParams);
 
-        mediaProgress = new MediaProgressView(this);
-        LinearLayout.LayoutParams progressParams =
-                new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT, dp(20));
-        progressParams.topMargin = dp(6);
-        content.addView(mediaProgress, progressParams);
-
-        LinearLayout controls = new LinearLayout(this);
-        controls.setGravity(Gravity.CENTER_VERTICAL);
-
-        mediaPrev = mediaButton("◀");
-        mediaPrev.setTextSize(22);
-        mediaPrev.setTextColor(Color.WHITE);
-        mediaPrev.setBackgroundColor(Color.TRANSPARENT);
-        mediaPrev.setOnClickListener(v -> sendPrevious());
-        controls.addView(mediaPrev, new LinearLayout.LayoutParams(dp(54), dp(48)));
-
-        View cSpacer1 = new View(this);
-        controls.addView(cSpacer1, new LinearLayout.LayoutParams(0, 1, 1f));
-
-        mediaPlayPause = mediaButton("Ⅱ");
-        mediaPlayPause.setTextSize(25);
-        mediaPlayPause.setTextColor(Color.rgb(25, 25, 25));
-        android.graphics.drawable.GradientDrawable playBg =
-                new android.graphics.drawable.GradientDrawable();
-        playBg.setColor(Color.rgb(245, 245, 245));
-        playBg.setCornerRadius(dp(22));
-        mediaPlayPause.setBackground(playBg);
+        mediaPlayPause = mediaButton("▶");
+        mediaPlayPause.setTextSize(22);
+        mediaPlayPause.setTextColor(Color.WHITE);
+        mediaPlayPause.setBackgroundColor(Color.TRANSPARENT);
         mediaPlayPause.setOnClickListener(v -> sendPlayPause());
-        controls.addView(mediaPlayPause, new LinearLayout.LayoutParams(dp(58), dp(48)));
+        mediaMirror.addView(mediaPlayPause, new LinearLayout.LayoutParams(dp(52), dp(48)));
 
-        View cSpacer2 = new View(this);
-        controls.addView(cSpacer2, new LinearLayout.LayoutParams(0, 1, 1f));
-
-        mediaNext = mediaButton("▶");
-        mediaNext.setTextSize(22);
+        mediaNext = mediaButton("›");
+        mediaNext.setTextSize(28);
         mediaNext.setTextColor(Color.WHITE);
         mediaNext.setBackgroundColor(Color.TRANSPARENT);
         mediaNext.setOnClickListener(v -> sendNext());
-        controls.addView(mediaNext, new LinearLayout.LayoutParams(dp(54), dp(48)));
-
-        content.addView(controls, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(50)));
+        mediaMirror.addView(mediaNext, new LinearLayout.LayoutParams(dp(52), dp(48)));
 
         int availableWidth = Math.max(
                 dp(1),
-                getResources().getDisplayMetrics().widthPixels - dp(48));
+                getResources().getDisplayMetrics().widthPixels - dp(32));
         LinearLayout.LayoutParams mirrorParams =
                 new LinearLayout.LayoutParams(
-                        Math.min(dp(760), availableWidth), dp(225));
+                        Math.min(dp(760), availableWidth), dp(58));
         mirrorParams.gravity = Gravity.CENTER_HORIZONTAL;
-        mirrorParams.bottomMargin = dp(6);
+        mirrorParams.bottomMargin = dp(8);
         root.addView(mediaMirror, mirrorParams);
     }
 
     private TextView mediaButton(String symbol) {
-        TextView v = textView(symbol, 24, Color.BLACK);
+        TextView v = textView(symbol, 24, Color.WHITE);
         v.setGravity(Gravity.CENTER);
         v.setClickable(true);
         return v;
@@ -512,30 +430,7 @@ public class MainActivity extends Activity {
                 title = "מדיה";
             }
 
-            String artist = metadata == null ? null :
-                    metadata.getString(MediaMetadata.METADATA_KEY_ARTIST);
-            if (artist == null || artist.trim().isEmpty()) {
-                artist = mediaController.getPackageName();
-            }
-
-            Bitmap art = metadata == null ? null :
-                    metadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART);
-            if (art == null && metadata != null) {
-                art = metadata.getBitmap(MediaMetadata.METADATA_KEY_ART);
-            }
-
             mediaTitle.setText(title);
-            mediaSubtitle.setText(artist);
-            mediaApp.setText("●");
-
-            if (art != null) {
-                albumArt.setImageBitmap(art);
-                albumArt.setVisibility(View.VISIBLE);
-            } else {
-                albumArt.setImageDrawable(null);
-                albumArt.setVisibility(View.GONE);
-            }
-
             mediaPlayPause.setText(
                     playback == PlaybackState.STATE_PLAYING ? "Ⅱ" : "▶");
 
@@ -546,20 +441,6 @@ public class MainActivity extends Activity {
             mediaNext.setVisibility(
                     (actions & PlaybackState.ACTION_SKIP_TO_NEXT) != 0
                             ? View.VISIBLE : View.GONE);
-
-            if (mediaProgress != null) {
-                long duration = metadata == null ? 0L :
-                        metadata.getLong(MediaMetadata.METADATA_KEY_DURATION);
-                long position = state.getPosition();
-                if (position < 0) position = 0;
-                if (duration > 0) {
-                    mediaProgress.setDuration(duration);
-                    mediaProgress.setPosition(position);
-                } else {
-                    mediaProgress.setDuration(0);
-                    mediaProgress.setPosition(0);
-                }
-            }
 
             mediaMirror.setVisibility(View.VISIBLE);
             mediaMirror.requestLayout();
@@ -673,63 +554,6 @@ public class MainActivity extends Activity {
                         | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                         | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
-    }
-
-    private static class MediaProgressView extends View {
-        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Path path = new Path();
-        private long duration;
-        private long position;
-
-        MediaProgressView(android.content.Context context) {
-            super(context);
-            paint.setStrokeWidth(3f);
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeCap(Paint.Cap.ROUND);
-        }
-
-        void setDuration(long value) {
-            duration = value;
-            invalidate();
-        }
-
-        void setPosition(long value) {
-            position = value;
-            invalidate();
-        }
-
-        @Override protected void onDraw(Canvas canvas) {
-            super.onDraw(canvas);
-            float w = getWidth();
-            float y = getHeight() / 2f;
-            float start = dpLocal(2);
-            float end = w - dpLocal(2);
-
-            paint.setColor(Color.argb(95, 255, 255, 255));
-            canvas.drawLine(start, y, end, y, paint);
-
-            float ratio = duration > 0 ? Math.max(0f, Math.min(1f,
-                    (float) position / (float) duration)) : 0f;
-            float activeEnd = start + (end - start) * ratio;
-
-            paint.setColor(Color.WHITE);
-            path.reset();
-            path.moveTo(start, y);
-            int waves = 16;
-            float span = Math.max(dpLocal(18), activeEnd - start);
-            for (int i = 0; i <= waves; i++) {
-                float x = start + span * i / waves;
-                float amp = (i % 2 == 0) ? dpLocal(2) : -dpLocal(2);
-                path.lineTo(x, y + amp);
-            }
-            canvas.drawPath(path, paint);
-
-            canvas.drawCircle(activeEnd, y, dpLocal(5), paint);
-        }
-
-        private float dpLocal(float value) {
-            return value * getResources().getDisplayMetrics().density;
-        }
     }
 
     private void showFatalError(Throwable t) {
