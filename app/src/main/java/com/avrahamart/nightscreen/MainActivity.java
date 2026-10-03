@@ -1,16 +1,20 @@
 package com.avrahamart.nightscreen;
 
 import android.app.Activity;
-import android.content.Intent;
+import android.content.ComponentName;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Typeface;
-import android.media.MediaPlayer;
-import android.net.Uri;
+import android.media.MediaMetadata;
+import android.media.session.MediaController;
+import android.media.session.MediaSessionManager;
+import android.media.session.PlaybackState;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -19,31 +23,35 @@ import com.kosherjava.zmanim.hebrewcalendar.JewishDate;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
-    private static final int REQUEST_AUDIO = 1001;
-
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Calendar now = Calendar.getInstance();
-    private final SimpleDateFormat timeFormat =
-            new SimpleDateFormat("HH:mm", Locale.getDefault());
-    private final SimpleDateFormat gregorianFormat =
-            new SimpleDateFormat("dd/MM/yyyy", Locale.US);
+    private final SimpleDateFormat numericDateFormat =
+            new SimpleDateFormat("dd-MM-yyyy", Locale.US);
 
     private TextView timeText;
     private TextView gregorianText;
     private TextView hebrewText;
-    private TextView playerStatus;
-    private TextView playButton;
 
-    private MediaPlayer mediaPlayer;
-    private Uri selectedAudioUri;
-    private String selectedAudioName = "";
+    private LinearLayout mediaMirror;
+    private ImageView albumArt;
+    private TextView mediaTitle;
+    private TextView mediaSubtitle;
+    private TextView mediaPlayPause;
+    private TextView mediaPrev;
+    private TextView mediaNext;
+
+    private MediaSessionManager mediaSessionManager;
+    private MediaController mediaController;
+    private MediaController.Callback mediaCallback;
 
     private final Runnable ticker = new Runnable() {
         @Override public void run() {
             updateClock();
+            refreshSystemMediaMirror();
             handler.postDelayed(this, 1000L);
         }
     };
@@ -77,13 +85,14 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         handler.removeCallbacks(ticker);
+        detachMediaController();
         super.onPause();
     }
 
     @Override
     protected void onDestroy() {
         handler.removeCallbacks(ticker);
-        releasePlayer();
+        detachMediaController();
         super.onDestroy();
     }
 
@@ -101,192 +110,333 @@ public class MainActivity extends Activity {
         timeParams.topMargin = dp(54);
         root.addView(timeText, timeParams);
 
-        gregorianText = textView("", 20, Color.rgb(184, 184, 184));
+        gregorianText = textView("", 22, Color.rgb(190, 190, 190));
+        gregorianText.setTypeface(
+                Typeface.create("sans-serif-medium", Typeface.NORMAL));
         gregorianText.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams gregParams = matchWrap();
-        gregParams.topMargin = dp(8);
+        gregParams.topMargin = dp(10);
         root.addView(gregorianText, gregParams);
 
-        hebrewText = textView("", 25, Color.rgb(234, 234, 234));
+        hebrewText = textView("", 22, Color.rgb(235, 235, 235));
         hebrewText.setTypeface(
                 Typeface.create("sans-serif-medium", Typeface.NORMAL));
         hebrewText.setGravity(Gravity.CENTER);
         hebrewText.setTextDirection(View.TEXT_DIRECTION_ANY_RTL);
         hebrewText.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
         LinearLayout.LayoutParams hebParams = matchWrap();
-        hebParams.topMargin = dp(10);
+        hebParams.topMargin = dp(7);
         root.addView(hebrewText, hebParams);
 
         View spacer = new View(this);
         root.addView(spacer, new LinearLayout.LayoutParams(1, 0, 1f));
 
-        buildPlayer(root);
+        buildSystemMediaMirror(root);
 
         setContentView(root);
     }
 
-    private void buildPlayer(LinearLayout root) {
-        LinearLayout player = new LinearLayout(this);
-        player.setOrientation(LinearLayout.HORIZONTAL);
-        player.setGravity(Gravity.CENTER_VERTICAL);
-        player.setPadding(dp(18), 0, dp(12), 0);
-        player.setBackgroundColor(Color.rgb(17, 17, 17));
+    private void buildSystemMediaMirror(LinearLayout root) {
+        mediaMirror = new LinearLayout(this);
+        mediaMirror.setOrientation(LinearLayout.HORIZONTAL);
+        mediaMirror.setGravity(Gravity.CENTER_VERTICAL);
+        mediaMirror.setPadding(dp(12), dp(10), dp(12), dp(10));
+        mediaMirror.setBackgroundColor(Color.rgb(20, 20, 20));
+        mediaMirror.setVisibility(View.GONE);
+
+        albumArt = new ImageView(this);
+        albumArt.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        mediaMirror.addView(albumArt,
+                new LinearLayout.LayoutParams(dp(58), dp(58)));
 
         LinearLayout info = new LinearLayout(this);
         info.setOrientation(LinearLayout.VERTICAL);
         info.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams infoParams =
+                new LinearLayout.LayoutParams(0, dp(58), 1f);
+        infoParams.leftMargin = dp(12);
+        mediaMirror.addView(info, infoParams);
 
-        TextView label = textView("נגן", 19, Color.rgb(231, 231, 231));
-        playerStatus = textView("בחר קובץ שמע", 14, Color.rgb(125, 125, 125));
-        playerStatus.setSingleLine(true);
-        info.addView(label, new LinearLayout.LayoutParams(
+        mediaTitle = textView("", 17, Color.rgb(240, 240, 240));
+        mediaTitle.setTypeface(
+                Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        mediaTitle.setSingleLine(true);
+        mediaSubtitle = textView("", 14, Color.rgb(145, 145, 145));
+        mediaSubtitle.setSingleLine(true);
+
+        info.addView(mediaTitle, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(30)));
-        info.addView(playerStatus, new LinearLayout.LayoutParams(
+        info.addView(mediaSubtitle, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(24)));
 
-        player.addView(info, new LinearLayout.LayoutParams(0, dp(72), 1f));
+        mediaPrev = mediaButton("‹");
+        mediaPrev.setOnClickListener(v -> sendPrevious());
+        mediaMirror.addView(mediaPrev,
+                new LinearLayout.LayoutParams(dp(46), dp(46)));
 
-        TextView chooseButton = createPlayerButton("⋯");
-        chooseButton.setOnClickListener(v -> chooseAudio());
-        player.addView(chooseButton, new LinearLayout.LayoutParams(dp(52), dp(52)));
-
-        playButton = createPlayerButton("▶");
-        playButton.setOnClickListener(v -> togglePlayback());
+        mediaPlayPause = mediaButton("▶");
+        mediaPlayPause.setOnClickListener(v -> sendPlayPause());
         LinearLayout.LayoutParams playParams =
-                new LinearLayout.LayoutParams(dp(52), dp(52));
-        playParams.leftMargin = dp(10);
-        player.addView(playButton, playParams);
+                new LinearLayout.LayoutParams(dp(50), dp(50));
+        playParams.leftMargin = dp(6);
+        mediaMirror.addView(mediaPlayPause, playParams);
+
+        mediaNext = mediaButton("›");
+        mediaNext.setOnClickListener(v -> sendNext());
+        LinearLayout.LayoutParams nextParams =
+                new LinearLayout.LayoutParams(dp(46), dp(46));
+        nextParams.leftMargin = dp(6);
+        mediaMirror.addView(mediaNext, nextParams);
 
         int availableWidth = Math.max(
                 dp(1),
                 getResources().getDisplayMetrics().widthPixels - dp(48));
-        LinearLayout.LayoutParams playerParams =
+        LinearLayout.LayoutParams mirrorParams =
                 new LinearLayout.LayoutParams(
-                        Math.min(dp(760), availableWidth), dp(82));
-        playerParams.gravity = Gravity.CENTER_HORIZONTAL;
-        root.addView(player, playerParams);
+                        Math.min(dp(760), availableWidth), dp(78));
+        mirrorParams.gravity = Gravity.CENTER_HORIZONTAL;
+        root.addView(mediaMirror, mirrorParams);
     }
 
-    private TextView createPlayerButton(String symbol) {
-        TextView button = new TextView(this);
-        button.setGravity(Gravity.CENTER);
-        button.setTextSize(22);
-        button.setTextColor(Color.BLACK);
-        button.setBackgroundColor(Color.rgb(243, 243, 243));
-        button.setText(symbol);
-        button.setClickable(true);
-        return button;
-    }
-
-    private void chooseAudio() {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("audio/*");
-        startActivityForResult(intent, REQUEST_AUDIO);
-    }
-
-    private void togglePlayback() {
-        try {
-            if (mediaPlayer != null) {
-                if (mediaPlayer.isPlaying()) {
-                    mediaPlayer.pause();
-                    playButton.setText("▶");
-                    playerStatus.setText(
-                            selectedAudioName.isEmpty() ? "מושהה" : selectedAudioName);
-                } else {
-                    mediaPlayer.start();
-                    playButton.setText("Ⅱ");
-                    playerStatus.setText(
-                            selectedAudioName.isEmpty() ? "מנגן עכשיו" : selectedAudioName);
-                }
-                return;
-            }
-
-            chooseAudio();
-        } catch (Throwable t) {
-            releasePlayer();
-            playerStatus.setText("לא ניתן להפעיל את הקובץ");
-            playButton.setText("▶");
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode != REQUEST_AUDIO || resultCode != RESULT_OK ||
-                data == null || data.getData() == null) {
-            return;
-        }
-
-        Uri uri = data.getData();
-        try {
-            releasePlayer();
-            selectedAudioUri = uri;
-            selectedAudioName = uri.getLastPathSegment() == null
-                    ? "שמע"
-                    : uri.getLastPathSegment();
-
-            mediaPlayer = new MediaPlayer();
-            mediaPlayer.setDataSource(this, uri);
-            mediaPlayer.setOnPreparedListener(mp -> {
-                mp.start();
-                playButton.setText("Ⅱ");
-                playerStatus.setText(selectedAudioName);
-            });
-            mediaPlayer.setOnCompletionListener(mp -> {
-                playButton.setText("▶");
-                playerStatus.setText(selectedAudioName);
-            });
-            mediaPlayer.setOnErrorListener((mp, what, extra) -> {
-                releasePlayer();
-                playerStatus.setText("לא ניתן לנגן את הקובץ");
-                playButton.setText("▶");
-                return true;
-            });
-            playerStatus.setText("טוען...");
-            mediaPlayer.prepareAsync();
-        } catch (Throwable t) {
-            releasePlayer();
-            playerStatus.setText("לא ניתן לפתוח את הקובץ");
-            playButton.setText("▶");
-        }
-    }
-
-    private void releasePlayer() {
-        if (mediaPlayer != null) {
-            try {
-                mediaPlayer.stop();
-            } catch (Throwable ignored) {
-            }
-            try {
-                mediaPlayer.reset();
-            } catch (Throwable ignored) {
-            }
-            try {
-                mediaPlayer.release();
-            } catch (Throwable ignored) {
-            }
-            mediaPlayer = null;
-        }
-        if (playButton != null) {
-            playButton.setText("▶");
-        }
+    private TextView mediaButton(String symbol) {
+        TextView v = textView(symbol, 24, Color.BLACK);
+        v.setGravity(Gravity.CENTER);
+        v.setBackgroundColor(Color.rgb(243, 243, 243));
+        v.setClickable(true);
+        return v;
     }
 
     private void updateClock() {
         now.setTimeInMillis(System.currentTimeMillis());
-        timeText.setText(timeFormat.format(now.getTime()));
-        gregorianText.setText(gregorianFormat.format(now.getTime()));
+        timeText.setText(numericTime());
+        gregorianText.setText(hebrewWeekday() + " · " +
+                numericDateFormat.format(now.getTime()));
 
         try {
             JewishDate jewishDate = new JewishDate(now);
             HebrewDateFormatter formatter = new HebrewDateFormatter();
             formatter.setHebrewFormat(true);
             formatter.setUseGershGershayim(true);
-            formatter.setUseLongHebrewYears(true);
+            formatter.setUseLongHebrewYears(false);
             hebrewText.setText(formatter.format(jewishDate));
         } catch (Throwable t) {
-            hebrewText.setText("תאריך עברי לא זמין");
+            hebrewText.setText("");
+        }
+    }
+
+    private String numericTime() {
+        return String.format(Locale.US, "%02d:%02d",
+                now.get(Calendar.HOUR_OF_DAY),
+                now.get(Calendar.MINUTE));
+    }
+
+    private String hebrewWeekday() {
+        switch (now.get(Calendar.DAY_OF_WEEK)) {
+            case Calendar.SUNDAY: return "יום א";
+            case Calendar.MONDAY: return "יום ב";
+            case Calendar.TUESDAY: return "יום ג";
+            case Calendar.WEDNESDAY: return "יום ד";
+            case Calendar.THURSDAY: return "יום ה";
+            case Calendar.FRIDAY: return "יום ו";
+            default: return "יום שבת";
+        }
+    }
+
+    private void refreshSystemMediaMirror() {
+        if (mediaMirror == null) return;
+
+        try {
+            if (mediaSessionManager == null) {
+                mediaSessionManager = (MediaSessionManager)
+                        getSystemService(MEDIA_SESSION_SERVICE);
+            }
+
+            if (mediaSessionManager == null) {
+                hideMediaMirror();
+                return;
+            }
+
+            ComponentName listener = new ComponentName(
+                    this, SystemMediaNotificationListener.class);
+            List<MediaController> sessions =
+                    mediaSessionManager.getActiveSessions(listener);
+
+            MediaController selected = selectBestSession(sessions);
+            if (selected == null) {
+                detachMediaController();
+                hideMediaMirror();
+                return;
+            }
+
+            if (mediaController != selected) {
+                attachMediaController(selected);
+            }
+
+            renderMediaMirror();
+        } catch (SecurityException ignored) {
+            detachMediaController();
+            hideMediaMirror();
+        } catch (Throwable ignored) {
+            hideMediaMirror();
+        }
+    }
+
+    private MediaController selectBestSession(List<MediaController> sessions) {
+        if (sessions == null || sessions.isEmpty()) return null;
+
+        for (MediaController controller : sessions) {
+            PlaybackState state = controller.getPlaybackState();
+            if (state == null) continue;
+            int s = state.getState();
+            if (s == PlaybackState.STATE_PLAYING ||
+                    s == PlaybackState.STATE_BUFFERING ||
+                    s == PlaybackState.STATE_PAUSED) {
+                return controller;
+            }
+        }
+        return null;
+    }
+
+    private void attachMediaController(MediaController controller) {
+        detachMediaController();
+        mediaController = controller;
+        mediaCallback = new MediaController.Callback() {
+            @Override public void onPlaybackStateChanged(PlaybackState state) {
+                runOnUiThread(() -> renderMediaMirror());
+            }
+
+            @Override public void onMetadataChanged(MediaMetadata metadata) {
+                runOnUiThread(() -> renderMediaMirror());
+            }
+
+            @Override public void onSessionDestroyed() {
+                runOnUiThread(() -> {
+                    detachMediaController();
+                    hideMediaMirror();
+                });
+            }
+        };
+
+        try {
+            mediaController.registerCallback(mediaCallback);
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private void detachMediaController() {
+        if (mediaController != null && mediaCallback != null) {
+            try {
+                mediaController.unregisterCallback(mediaCallback);
+            } catch (Throwable ignored) {
+            }
+        }
+        mediaController = null;
+        mediaCallback = null;
+    }
+
+    private void renderMediaMirror() {
+        if (mediaMirror == null || mediaController == null) return;
+
+        try {
+            PlaybackState state = mediaController.getPlaybackState();
+            MediaMetadata metadata = mediaController.getMetadata();
+            if (state == null) {
+                hideMediaMirror();
+                return;
+            }
+
+            int playback = state.getState();
+            if (playback != PlaybackState.STATE_PLAYING &&
+                    playback != PlaybackState.STATE_BUFFERING &&
+                    playback != PlaybackState.STATE_PAUSED) {
+                hideMediaMirror();
+                return;
+            }
+
+            String title = metadata == null ? null :
+                    metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE);
+            if (title == null || title.trim().isEmpty()) {
+                title = metadata == null ? null :
+                        metadata.getString(MediaMetadata.METADATA_KEY_TITLE);
+            }
+            if (title == null || title.trim().isEmpty()) {
+                title = "מדיה";
+            }
+
+            String artist = metadata == null ? null :
+                    metadata.getString(MediaMetadata.METADATA_KEY_ARTIST);
+            if (artist == null || artist.trim().isEmpty()) {
+                artist = mediaController.getPackageName();
+            }
+
+            Bitmap art = metadata == null ? null :
+                    metadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART);
+            if (art == null && metadata != null) {
+                art = metadata.getBitmap(MediaMetadata.METADATA_KEY_ART);
+            }
+
+            mediaTitle.setText(title);
+            mediaSubtitle.setText(artist);
+            if (art != null) {
+                albumArt.setImageBitmap(art);
+                albumArt.setVisibility(View.VISIBLE);
+            } else {
+                albumArt.setImageDrawable(null);
+                albumArt.setVisibility(View.GONE);
+            }
+
+            mediaPlayPause.setText(
+                    playback == PlaybackState.STATE_PLAYING ? "Ⅱ" : "▶");
+
+            long actions = state.getActions();
+            mediaPrev.setVisibility(
+                    (actions & PlaybackState.ACTION_SKIP_TO_PREVIOUS) != 0
+                            ? View.VISIBLE : View.GONE);
+            mediaNext.setVisibility(
+                    (actions & PlaybackState.ACTION_SKIP_TO_NEXT) != 0
+                            ? View.VISIBLE : View.GONE);
+
+            mediaMirror.setVisibility(View.VISIBLE);
+            mediaMirror.requestLayout();
+        } catch (Throwable ignored) {
+            hideMediaMirror();
+        }
+    }
+
+    private void hideMediaMirror() {
+        if (mediaMirror != null) {
+            mediaMirror.setVisibility(View.GONE);
+        }
+    }
+
+    private void sendPlayPause() {
+        try {
+            if (mediaController == null) return;
+            PlaybackState state = mediaController.getPlaybackState();
+            if (state != null && state.getState() == PlaybackState.STATE_PLAYING) {
+                mediaController.getTransportControls().pause();
+            } else {
+                mediaController.getTransportControls().play();
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private void sendPrevious() {
+        try {
+            if (mediaController != null) {
+                mediaController.getTransportControls().skipToPrevious();
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private void sendNext() {
+        try {
+            if (mediaController != null) {
+                mediaController.getTransportControls().skipToNext();
+            }
+        } catch (Throwable ignored) {
         }
     }
 
