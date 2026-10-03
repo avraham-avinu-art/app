@@ -34,7 +34,6 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
-        getWindow().addFlags(Window.FEATURE_NO_TITLE);
         getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         hideSystemUi();
         nightView = new NightView(this);
@@ -98,7 +97,11 @@ public class MainActivity extends Activity {
             now.setTimeInMillis(System.currentTimeMillis());
             time = timeFmt.format(now.getTime());
             gregorian = gregFmt.format(now.getTime());
-            hebrew = HebrewCalendar.formatToday(now);
+            try {
+                hebrew = HebrewCalendar.formatToday(now);
+            } catch (Throwable ignored) {
+                hebrew = "";
+            }
             minutePulse = now.get(Calendar.SECOND);
             invalidate();
         }
@@ -110,7 +113,8 @@ public class MainActivity extends Activity {
         @Override protected void onDraw(Canvas c) {
             super.onDraw(c);
             float w = getWidth(), h = getHeight();
-            float scale = Math.min(w, h) / 1080f;
+            if (w <= 0 || h <= 0) return;
+            float scale = Math.max(0.5f, Math.min(w, h) / 1080f);
             c.save();
             c.scale(scale, scale);
             float sw = w / scale, sh = h / scale;
