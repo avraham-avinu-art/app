@@ -68,6 +68,9 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         try {
+            getWindow().setFlags(
+                    android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                    android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN);
             getWindow().addFlags(
                     android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             hideSystemUi();
@@ -156,32 +159,41 @@ public class MainActivity extends Activity {
         mediaSetup = new LinearLayout(this);
         mediaSetup.setOrientation(LinearLayout.HORIZONTAL);
         mediaSetup.setGravity(Gravity.CENTER_VERTICAL);
-        mediaSetup.setPadding(dp(10), dp(4), dp(8), dp(4));
+        mediaSetup.setPadding(dp(8), dp(5), dp(8), dp(5));
         mediaSetup.setBackgroundColor(Color.BLACK);
         mediaSetup.setVisibility(View.GONE);
 
         TextView message = textView(
                 "יש לאפשר גישה להתראות כדי להציג את נגן המערכת",
-                13, Color.rgb(200, 200, 200));
-        message.setGravity(Gravity.CENTER_VERTICAL);
-        message.setSingleLine(true);
-        message.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        mediaSetup.addView(message, new LinearLayout.LayoutParams(0, dp(48), 1f));
+                14, Color.rgb(205, 205, 205));
+        message.setGravity(Gravity.CENTER_VERTICAL | Gravity.RIGHT);
+        message.setTextDirection(View.TEXT_DIRECTION_RTL);
+        message.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_END);
+        message.setSingleLine(false);
+        message.setMaxLines(2);
+        message.setEllipsize(null);
+        message.setIncludeFontPadding(false);
+
+        LinearLayout.LayoutParams messageParams =
+                new LinearLayout.LayoutParams(0, dp(58), 1f);
+        messageParams.leftMargin = dp(6);
+        mediaSetup.addView(message, messageParams);
 
         TextView openSettings = mediaButton("הפעל");
-        openSettings.setTextSize(13);
+        openSettings.setTextSize(14);
         openSettings.setTextColor(Color.WHITE);
-        openSettings.setBackgroundColor(Color.rgb(45, 45, 45));
+        openSettings.setBackgroundColor(Color.rgb(48, 48, 48));
+        openSettings.setGravity(Gravity.CENTER);
         openSettings.setOnClickListener(v -> openNotificationAccessSettings());
-        mediaSetup.addView(openSettings, new LinearLayout.LayoutParams(dp(72), dp(44)));
+        mediaSetup.addView(openSettings, new LinearLayout.LayoutParams(dp(76), dp(46)));
 
         int availableWidth = Math.max(
                 dp(1),
-                getResources().getDisplayMetrics().widthPixels - dp(32));
+                getResources().getDisplayMetrics().widthPixels - dp(20));
         LinearLayout.LayoutParams setupParams = new LinearLayout.LayoutParams(
-                Math.min(dp(760), availableWidth), dp(56));
+                Math.min(dp(760), availableWidth), dp(68));
         setupParams.gravity = Gravity.CENTER_HORIZONTAL;
-        setupParams.bottomMargin = dp(6);
+        setupParams.bottomMargin = dp(5);
         root.addView(mediaSetup, setupParams);
     }
 
@@ -211,11 +223,11 @@ public class MainActivity extends Activity {
         controls.setGravity(Gravity.CENTER);
         controls.setPadding(dp(8), 0, dp(8), 0);
 
-        mediaPrev = mediaButton("⏮");
-        mediaPrev.setTextSize(22);
+        mediaPrev = mediaButton("◀");
+        mediaPrev.setTextSize(25);
         mediaPrev.setTypeface(Typeface.DEFAULT_BOLD);
         mediaPrev.setTextColor(Color.WHITE);
-        mediaPrev.setBackgroundColor(Color.rgb(32, 32, 32));
+        mediaPrev.setBackground(makeMediaButtonBackground());
         mediaPrev.setOnClickListener(v -> sendPrevious());
         controls.addView(mediaPrev, buttonParams());
 
@@ -223,18 +235,18 @@ public class MainActivity extends Activity {
         mediaPlayPause.setTextSize(22);
         mediaPlayPause.setTypeface(Typeface.DEFAULT_BOLD);
         mediaPlayPause.setTextColor(Color.WHITE);
-        mediaPlayPause.setBackgroundColor(Color.rgb(32, 32, 32));
+        mediaPlayPause.setBackground(makeMediaButtonBackground());
         mediaPlayPause.setOnClickListener(v -> sendPlayPause());
         LinearLayout.LayoutParams playParams = buttonParams();
-        playParams.leftMargin = dp(12);
-        playParams.rightMargin = dp(12);
+        playParams.leftMargin = dp(8);
+        playParams.rightMargin = dp(8);
         controls.addView(mediaPlayPause, playParams);
 
-        mediaNext = mediaButton("⏭");
-        mediaNext.setTextSize(22);
+        mediaNext = mediaButton("▶");
+        mediaNext.setTextSize(25);
         mediaNext.setTypeface(Typeface.DEFAULT_BOLD);
         mediaNext.setTextColor(Color.WHITE);
-        mediaNext.setBackgroundColor(Color.rgb(32, 32, 32));
+        mediaNext.setBackground(makeMediaButtonBackground());
         mediaNext.setOnClickListener(v -> sendNext());
         controls.addView(mediaNext, buttonParams());
 
@@ -252,8 +264,17 @@ public class MainActivity extends Activity {
         root.addView(mediaMirror, mirrorParams);
     }
 
+    private android.graphics.drawable.Drawable makeMediaButtonBackground() {
+        android.graphics.drawable.GradientDrawable bg =
+                new android.graphics.drawable.GradientDrawable();
+        bg.setColor(Color.rgb(36, 36, 36));
+        bg.setCornerRadius(dp(18));
+        bg.setStroke(dp(1), Color.rgb(85, 85, 85));
+        return bg;
+    }
+
     private LinearLayout.LayoutParams buttonParams() {
-        return new LinearLayout.LayoutParams(dp(64), dp(46));
+        return new LinearLayout.LayoutParams(dp(58), dp(46));
     }
 
     private TextView mediaButton(String symbol) {
@@ -602,7 +623,7 @@ public class MainActivity extends Activity {
     private void showFatalError(Throwable t) {
         try {
             TextView error = textView(
-                    "Night Screen\n" + t.getClass().getSimpleName(),
+                    "שומר מסך\n" + t.getClass().getSimpleName(),
                     22, Color.WHITE);
             error.setGravity(Gravity.CENTER);
             error.setBackgroundColor(Color.BLACK);
