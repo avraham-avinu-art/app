@@ -412,7 +412,7 @@ public class MainActivity extends Activity {
         });row.addView(sp,new LinearLayout.LayoutParams(dp(150),dp(48)));b.addView(row);
     }
     private void playLastMedia(){try{if(mediaController!=null){mediaController.getTransportControls().play();lastMediaButton.setVisibility(View.GONE);mediaPlayPause.setVisibility(View.VISIBLE);}}catch(Throwable ignored){}}
-    private void    private void updateClock() {
+    private void updateClock() {
         now.setTimeInMillis(System.currentTimeMillis());
         timeText.setText(numericTime());
         gregorianText.setText(hebrewWeekday() + " · " +
@@ -495,6 +495,18 @@ public class MainActivity extends Activity {
             if (selected == null) {
                 detachMediaController();
                 hideMediaMirror();
+                if (getBool("showLastMedia", false) && !lastTitle.isEmpty()) {
+                    mediaMirror.setVisibility(View.VISIBLE);
+                    mediaTitle.setText(lastTitle);
+                    mediaDetails.setText(lastArtist);
+                    mediaDetails.setVisibility(getBool("showDetails", false) ? View.VISIBLE : View.GONE);
+                    mediaProgressText.setVisibility(View.GONE);
+                    mediaNext.setVisibility(View.GONE);
+                    mediaPrev.setVisibility(View.GONE);
+                    mediaPlayPause.setVisibility(View.GONE);
+                    lastMediaButton.setVisibility(View.VISIBLE);
+                    applySettings();
+                }
                 return;
             }
 
@@ -625,7 +637,7 @@ public class MainActivity extends Activity {
                     (actions & PlaybackState.ACTION_SKIP_TO_NEXT) != 0
                             ? View.VISIBLE : View.GONE);
 
-            mediaMirror.setVisibility(View.VISIBLE);
+            mediaMirror.setVisibility(getBool("showPlayer", true) ? View.VISIBLE : View.GONE);
             mediaMirror.requestLayout();
         } catch (Throwable ignored) {
             hideMediaMirror();
