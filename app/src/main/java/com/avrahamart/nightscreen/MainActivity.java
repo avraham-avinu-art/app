@@ -1,18 +1,24 @@
 package com.avrahamart.nightscreen;
 
 import android.app.Activity;
+import android.app.NotificationManager;
+import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.media.MediaMetadata;
 import android.media.session.MediaController;
+import android.media.session.MediaSession;
 import android.media.session.MediaSessionManager;
 import android.media.session.PlaybackState;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
+import android.provider.Settings;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -35,7 +41,9 @@ public class MainActivity extends Activity {
     private TextView timeText;
     private TextView gregorianText;
     private TextView hebrewText;
+    private final int dateTextColor = Color.rgb(220, 220, 220);
 
+    private LinearLayout mediaSetup;
     private LinearLayout mediaMirror;
     private ImageView albumArt;
     private TextView mediaTitle;
@@ -77,6 +85,7 @@ public class MainActivity extends Activity {
             hideSystemUi();
             handler.removeCallbacks(ticker);
             handler.post(ticker);
+            handler.postDelayed(this::refreshSystemMediaMirror, 250L);
         } catch (Throwable t) {
             showFatalError(t);
         }
@@ -110,7 +119,7 @@ public class MainActivity extends Activity {
         timeParams.topMargin = dp(54);
         root.addView(timeText, timeParams);
 
-        gregorianText = textView("", 22, Color.rgb(190, 190, 190));
+        gregorianText = textView("", 22, dateTextColor);
         gregorianText.setTypeface(
                 Typeface.create("sans-serif-medium", Typeface.NORMAL));
         gregorianText.setGravity(Gravity.CENTER);
@@ -118,7 +127,7 @@ public class MainActivity extends Activity {
         gregParams.topMargin = dp(10);
         root.addView(gregorianText, gregParams);
 
-        hebrewText = textView("", 22, Color.rgb(235, 235, 235));
+        hebrewText = textView("", 22, dateTextColor);
         hebrewText.setTypeface(
                 Typeface.create("sans-serif-medium", Typeface.NORMAL));
         hebrewText.setGravity(Gravity.CENTER);
@@ -131,9 +140,42 @@ public class MainActivity extends Activity {
         View spacer = new View(this);
         root.addView(spacer, new LinearLayout.LayoutParams(1, 0, 1f));
 
+        buildMediaSetup(root);
         buildSystemMediaMirror(root);
 
         setContentView(root);
+    }
+
+    private void buildMediaSetup(LinearLayout root) {
+        mediaSetup = new LinearLayout(this);
+        mediaSetup.setOrientation(LinearLayout.HORIZONTAL);
+        mediaSetup.setGravity(Gravity.CENTER_VERTICAL);
+        mediaSetup.setPadding(dp(14), dp(8), dp(10), dp(8));
+        mediaSetup.setBackgroundColor(Color.rgb(28, 28, 28));
+        mediaSetup.setVisibility(View.GONE);
+
+        TextView message = textView(
+                "כדי להציג את נגן המערכת יש לאפשר ל-Night Screen גישה להתראות",
+                14, Color.rgb(215, 215, 215));
+        message.setGravity(Gravity.CENTER_VERTICAL);
+        message.setSingleLine(false);
+        mediaSetup.addView(message, new LinearLayout.LayoutParams(0, dp(56), 1f));
+
+        TextView openSettings = mediaButton("הפעל גישה");
+        openSettings.setTextSize(14);
+        openSettings.setTextColor(Color.WHITE);
+        openSettings.setBackgroundColor(Color.rgb(58, 58, 58));
+        openSettings.setOnClickListener(v -> openNotificationAccessSettings());
+        mediaSetup.addView(openSettings, new LinearLayout.LayoutParams(dp(104), dp(46)));
+
+        int availableWidth = Math.max(
+                dp(1),
+                getResources().getDisplayMetrics().widthPixels - dp(48));
+        LinearLayout.LayoutParams setupParams = new LinearLayout.LayoutParams(
+                Math.min(dp(760), availableWidth), dp(72));
+        setupParams.gravity = Gravity.CENTER_HORIZONTAL;
+        setupParams.bottomMargin = dp(8);
+        root.addView(mediaSetup, setupParams);
     }
 
     private void buildSystemMediaMirror(LinearLayout root) {
@@ -246,6 +288,14 @@ public class MainActivity extends Activity {
         if (mediaMirror == null) return;
 
         try {
+            if (!hasNotificationAccess()) {
+                detachMediaController();
+                hideMediaMirror();
+                showMediaSetup();
+                return;
+            }
+            hideMediaSetup();
+
             if (mediaSessionManager == null) {
                 mediaSessionManager = (MediaSessionManager)
                         getSystemService(MEDIA_SESSION_SERVICE);
@@ -258,17 +308,34 @@ public class MainActivity extends Activity {
 
             ComponentName listener = new ComponentName(
                     this, SystemMediaNotificationListener.class);
-            List<MediaController> sessions =
-                    mediaSessionManager.getActiveSessions(listener);
 
-            MediaController selected = selectBestSession(sessions);
+            // Prefer the session Android is currently routing media-key commands to.
+            MediaController selected = null;
+            if (Build.VERSION.SDK_INT >= 33) {
+                try {
+                    MediaSession.Token token = mediaSessionManager.getMediaKeyEventSession();
+                    if (token != null) {
+                        selected = new MediaController(this, token);
+                    }
+                } catch (Throwable ignored) {
+                }
+            }
+
+            // Fallback to the complete active-session list, already ordered by Android.
+            if (selected == null) {
+                List<MediaController> sessions =
+                        mediaSessionManager.getActiveSessions(listener);
+                selected = selectBestSession(sessions);
+            }
+
             if (selected == null) {
                 detachMediaController();
                 hideMediaMirror();
                 return;
             }
 
-            if (mediaController != selected) {
+            if (mediaController == null ||
+                    !mediaController.getSessionToken().equals(selected.getSessionToken())) {
                 attachMediaController(selected);
             }
 
@@ -276,6 +343,7 @@ public class MainActivity extends Activity {
         } catch (SecurityException ignored) {
             detachMediaController();
             hideMediaMirror();
+            showMediaSetup();
         } catch (Throwable ignored) {
             hideMediaMirror();
         }
@@ -284,13 +352,19 @@ public class MainActivity extends Activity {
     private MediaController selectBestSession(List<MediaController> sessions) {
         if (sessions == null || sessions.isEmpty()) return null;
 
+        // Prefer playing/buffering, then paused, preserving Android's priority order.
         for (MediaController controller : sessions) {
             PlaybackState state = controller.getPlaybackState();
             if (state == null) continue;
             int s = state.getState();
             if (s == PlaybackState.STATE_PLAYING ||
-                    s == PlaybackState.STATE_BUFFERING ||
-                    s == PlaybackState.STATE_PAUSED) {
+                    s == PlaybackState.STATE_BUFFERING) {
+                return controller;
+            }
+        }
+        for (MediaController controller : sessions) {
+            PlaybackState state = controller.getPlaybackState();
+            if (state != null && state.getState() == PlaybackState.STATE_PAUSED) {
                 return controller;
             }
         }
@@ -400,6 +474,57 @@ public class MainActivity extends Activity {
             mediaMirror.requestLayout();
         } catch (Throwable ignored) {
             hideMediaMirror();
+        }
+    }
+
+    private boolean hasNotificationAccess() {
+        ComponentName component = new ComponentName(
+                this, SystemMediaNotificationListener.class);
+        try {
+            if (Build.VERSION.SDK_INT >= 27) {
+                NotificationManager manager =
+                        (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+                return manager != null &&
+                        manager.isNotificationListenerAccessGranted(component);
+            }
+        } catch (Throwable ignored) {
+        }
+
+        try {
+            String enabled = Settings.Secure.getString(
+                    getContentResolver(), "enabled_notification_listeners");
+            return enabled != null && enabled.contains(component.flattenToString());
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    private void showMediaSetup() {
+        if (mediaSetup != null) mediaSetup.setVisibility(View.VISIBLE);
+    }
+
+    private void hideMediaSetup() {
+        if (mediaSetup != null) mediaSetup.setVisibility(View.GONE);
+    }
+
+    private void openNotificationAccessSettings() {
+        ComponentName component = new ComponentName(
+                this, SystemMediaNotificationListener.class);
+        try {
+            Intent intent;
+            if (Build.VERSION.SDK_INT >= 30) {
+                intent = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS);
+                intent.putExtra(Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME, component);
+            } else {
+                intent = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
+            }
+            startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+            try {
+                startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
+            } catch (Throwable ignored) {
+            }
+        } catch (Throwable ignored) {
         }
     }
 
