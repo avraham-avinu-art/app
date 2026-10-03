@@ -8,8 +8,7 @@
         <activity
             android:name=".MainActivity"
             android:screenOrientation="unspecified"
-            android:exported="true"
-            android:keepScreenOn="true">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
