@@ -24,11 +24,14 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Generate Gradle 9.5 wrapper
-        run: gradle wrapper --gradle-version 9.5 --distribution-type bin
+      - name: Install Gradle 9.5
+        run: |
+          curl -fsSL https://services.gradle.org/distributions/gradle-9.5-bin.zip -o /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d /tmp
+          echo "/tmp/gradle-9.5/bin" >> "$GITHUB_PATH"
 
       - name: Build release APK
-        run: ./gradlew :app:assembleRelease --no-daemon
+        run: gradle --version && gradle :app:assembleRelease --no-daemon
 
       - name: Verify APK
         run: |
