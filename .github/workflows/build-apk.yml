@@ -36,7 +36,7 @@ jobs:
       - name: Verify APK
         run: |
           test -s app/build/outputs/apk/release/app-release.apk
-          sha256sum app/build/outputs/apk/release/app-release-unsigned.apk
+          sha256sum app/build/outputs/apk/release/app-release.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
