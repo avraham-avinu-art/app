@@ -110,21 +110,25 @@ public class MainActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER_HORIZONTAL);
         root.setBackgroundColor(Color.BLACK);
-        root.setPadding(dp(16), dp(12), dp(16), dp(8));
+        root.setPadding(dp(10), dp(6), dp(10), dp(4));
 
         timeText = textView("--:--", 82, Color.rgb(247, 247, 247));
         timeText.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
         timeText.setGravity(Gravity.CENTER);
+        timeText.setAutoSizeTextTypeUniformWithConfiguration(
+                dp(48), dp(82), dp(1), android.util.TypedValue.COMPLEX_UNIT_PX);
         LinearLayout.LayoutParams timeParams = matchWrap();
-        timeParams.topMargin = dp(28);
+        timeParams.topMargin = dp(18);
         root.addView(timeText, timeParams);
 
         gregorianText = textView("", 22, dateTextColor);
         gregorianText.setTypeface(
                 Typeface.create("sans-serif-medium", Typeface.NORMAL));
         gregorianText.setGravity(Gravity.CENTER);
+        gregorianText.setAutoSizeTextTypeUniformWithConfiguration(
+                dp(14), dp(22), dp(1), android.util.TypedValue.COMPLEX_UNIT_PX);
         LinearLayout.LayoutParams gregParams = matchWrap();
-        gregParams.topMargin = dp(6);
+        gregParams.topMargin = dp(4);
         root.addView(gregorianText, gregParams);
 
         hebrewText = textView("", 22, dateTextColor);
@@ -133,8 +137,10 @@ public class MainActivity extends Activity {
         hebrewText.setGravity(Gravity.CENTER);
         hebrewText.setTextDirection(View.TEXT_DIRECTION_ANY_RTL);
         hebrewText.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+        hebrewText.setAutoSizeTextTypeUniformWithConfiguration(
+                dp(14), dp(22), dp(1), android.util.TypedValue.COMPLEX_UNIT_PX);
         LinearLayout.LayoutParams hebParams = matchWrap();
-        hebParams.topMargin = dp(5);
+        hebParams.topMargin = dp(3);
         root.addView(hebrewText, hebParams);
 
         View spacer = new View(this);
@@ -181,63 +187,80 @@ public class MainActivity extends Activity {
 
     private void buildSystemMediaMirror(LinearLayout root) {
         mediaMirror = new LinearLayout(this);
-        mediaMirror.setOrientation(LinearLayout.HORIZONTAL);
-        mediaMirror.setGravity(Gravity.CENTER_VERTICAL);
-        mediaMirror.setPadding(dp(8), dp(4), dp(8), dp(4));
+        mediaMirror.setOrientation(LinearLayout.VERTICAL);
+        mediaMirror.setGravity(Gravity.CENTER);
+        mediaMirror.setPadding(dp(10), dp(4), dp(10), dp(4));
         mediaMirror.setBackgroundColor(Color.BLACK);
         mediaMirror.setVisibility(View.GONE);
 
-        // Android 11-style compact media controls:
-        // left = previous, center = play/pause, right = next.
-        mediaPrev = mediaButton("‹");
-        mediaPrev.setTextSize(28);
-        mediaPrev.setTextColor(Color.WHITE);
-        mediaPrev.setBackgroundColor(Color.TRANSPARENT);
-        mediaPrev.setOnClickListener(v -> sendPrevious());
-
-        mediaMirror.addView(mediaPrev, new LinearLayout.LayoutParams(dp(52), dp(48)));
-
+        // Row 1: song title only. It scrolls automatically when it does not fit.
         mediaTitle = textView("", 17, Color.WHITE);
         mediaTitle.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         mediaTitle.setSingleLine(true);
-        mediaTitle.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        mediaTitle.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+        mediaTitle.setEllipsize(android.text.TextUtils.TruncateAt.MARQUEE);
+        mediaTitle.setMarqueeRepeatLimit(-1);
+        mediaTitle.setSelected(true);
+        mediaTitle.setGravity(Gravity.CENTER);
+        mediaTitle.setHorizontallyScrolling(true);
+        mediaMirror.addView(mediaTitle, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(38)));
 
-        LinearLayout.LayoutParams titleParams =
-                new LinearLayout.LayoutParams(0, dp(48), 1f);
-        titleParams.leftMargin = dp(6);
-        titleParams.rightMargin = dp(6);
-        mediaMirror.addView(mediaTitle, titleParams);
+        // Row 2: clearly visible, bold controls.
+        LinearLayout controls = new LinearLayout(this);
+        controls.setOrientation(LinearLayout.HORIZONTAL);
+        controls.setGravity(Gravity.CENTER);
+        controls.setPadding(dp(8), 0, dp(8), 0);
+
+        mediaPrev = mediaButton("⏮");
+        mediaPrev.setTextSize(22);
+        mediaPrev.setTypeface(Typeface.DEFAULT_BOLD);
+        mediaPrev.setTextColor(Color.WHITE);
+        mediaPrev.setBackgroundColor(Color.rgb(32, 32, 32));
+        mediaPrev.setOnClickListener(v -> sendPrevious());
+        controls.addView(mediaPrev, buttonParams());
 
         mediaPlayPause = mediaButton("▶");
         mediaPlayPause.setTextSize(22);
+        mediaPlayPause.setTypeface(Typeface.DEFAULT_BOLD);
         mediaPlayPause.setTextColor(Color.WHITE);
-        mediaPlayPause.setBackgroundColor(Color.TRANSPARENT);
+        mediaPlayPause.setBackgroundColor(Color.rgb(32, 32, 32));
         mediaPlayPause.setOnClickListener(v -> sendPlayPause());
-        mediaMirror.addView(mediaPlayPause, new LinearLayout.LayoutParams(dp(52), dp(48)));
+        LinearLayout.LayoutParams playParams = buttonParams();
+        playParams.leftMargin = dp(12);
+        playParams.rightMargin = dp(12);
+        controls.addView(mediaPlayPause, playParams);
 
-        mediaNext = mediaButton("›");
-        mediaNext.setTextSize(28);
+        mediaNext = mediaButton("⏭");
+        mediaNext.setTextSize(22);
+        mediaNext.setTypeface(Typeface.DEFAULT_BOLD);
         mediaNext.setTextColor(Color.WHITE);
-        mediaNext.setBackgroundColor(Color.TRANSPARENT);
+        mediaNext.setBackgroundColor(Color.rgb(32, 32, 32));
         mediaNext.setOnClickListener(v -> sendNext());
-        mediaMirror.addView(mediaNext, new LinearLayout.LayoutParams(dp(52), dp(48)));
+        controls.addView(mediaNext, buttonParams());
+
+        mediaMirror.addView(controls, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(54)));
 
         int availableWidth = Math.max(
                 dp(1),
                 getResources().getDisplayMetrics().widthPixels - dp(32));
         LinearLayout.LayoutParams mirrorParams =
                 new LinearLayout.LayoutParams(
-                        Math.min(dp(760), availableWidth), dp(58));
+                        Math.min(dp(760), availableWidth), dp(96));
         mirrorParams.gravity = Gravity.CENTER_HORIZONTAL;
-        mirrorParams.bottomMargin = dp(8);
+        mirrorParams.bottomMargin = dp(6);
         root.addView(mediaMirror, mirrorParams);
+    }
+
+    private LinearLayout.LayoutParams buttonParams() {
+        return new LinearLayout.LayoutParams(dp(64), dp(46));
     }
 
     private TextView mediaButton(String symbol) {
         TextView v = textView(symbol, 24, Color.WHITE);
         v.setGravity(Gravity.CENTER);
         v.setClickable(true);
+        v.setTypeface(Typeface.DEFAULT_BOLD);
         return v;
     }
 
@@ -547,13 +570,33 @@ public class MainActivity extends Activity {
     }
 
     private void hideSystemUi() {
-        getWindow().getDecorView().setSystemUiVisibility(
+        View decor = getWindow().getDecorView();
+        decor.setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                         | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                         | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                         | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+
+        if (android.os.Build.VERSION.SDK_INT >= 30) {
+            android.view.WindowInsetsController controller = decor.getWindowInsetsController();
+            if (controller != null) {
+                controller.hide(android.view.WindowInsets.Type.statusBars()
+                        | android.view.WindowInsets.Type.navigationBars()
+                        | android.view.WindowInsets.Type.captionBar());
+                controller.setSystemBarsBehavior(
+                        android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            }
+        }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            hideSystemUi();
+        }
     }
 
     private void showFatalError(Throwable t) {
