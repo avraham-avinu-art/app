@@ -8,13 +8,11 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowInsets;
-import android.view.WindowInsetsController;
-import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
@@ -31,6 +29,7 @@ public class MainActivity extends Activity {
     private TextView hebrewText;
     private TextView playButton;
     private boolean playing;
+    private String lastHebrewDateKey = "";
 
     private final Runnable ticker = new Runnable() {
         @Override public void run() {
@@ -42,18 +41,26 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
-        getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        hideSystemUi();
-        buildUi();
-        updateClock();
+        try {
+            getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            hideSystemUi();
+            buildUi();
+            updateClock();
+        } catch (Throwable t) {
+            showFatalError(t);
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        hideSystemUi();
-        handler.removeCallbacks(ticker);
-        handler.post(ticker);
+        try {
+            hideSystemUi();
+            handler.removeCallbacks(ticker);
+            handler.post(ticker);
+        } catch (Throwable t) {
+            showFatalError(t);
+        }
     }
 
     @Override
@@ -73,7 +80,7 @@ public class MainActivity extends Activity {
         brand.setGravity(Gravity.CENTER);
         root.addView(brand, matchWrap());
 
-        timeText = textView("", 82, Color.rgb(247,247,247));
+        timeText = textView("--:--", 82, Color.rgb(247,247,247));
         timeText.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
         timeText.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams timeParams = matchWrap();
@@ -94,7 +101,7 @@ public class MainActivity extends Activity {
         hebParams.topMargin = dp(10);
         root.addView(hebrewText, hebParams);
 
-        SpaceSpacer spacer = new SpaceSpacer(this);
+        View spacer = new View(this);
         root.addView(spacer, new LinearLayout.LayoutParams(1, 0, 1f));
 
         LinearLayout player = new LinearLayout(this);
@@ -119,9 +126,9 @@ public class MainActivity extends Activity {
         });
         player.addView(playButton, new LinearLayout.LayoutParams(dp(52), dp(52)));
 
+        int availableWidth = Math.max(dp(1), getResources().getDisplayMetrics().widthPixels - dp(48));
         LinearLayout.LayoutParams playerParams =
-                new LinearLayout.LayoutParams(dp(760), dp(72));
-        playerParams.width = Math.min(dp(760), getResources().getDisplayMetrics().widthPixels - dp(48));
+                new LinearLayout.LayoutParams(Math.min(dp(760), availableWidth), dp(72));
         playerParams.gravity = Gravity.CENTER_HORIZONTAL;
         root.addView(player, playerParams);
 
@@ -133,11 +140,43 @@ public class MainActivity extends Activity {
         timeText.setText(timeFormat.format(now.getTime()));
         gregorianText.setText(gregorianFormat.format(now.getTime()));
 
-        try {
-            hebrewText.setText(JewishDateSource.today());
-        } catch (Throwable t) {
-            hebrewText.setText("");
+        String dateKey = now.get(Calendar.YEAR) + "-" +
+                now.get(Calendar.DAY_OF_YEAR);
+        if (!dateKey.equals(lastHebrewDateKey)) {
+            lastHebrewDateKey = dateKey;
+            try {
+                hebrewText.setText(loadKosherJavaHebrewDate());
+            } catch (Throwable t) {
+                hebrewText.setText("");
+            }
         }
+    }
+
+    private String loadKosherJavaHebrewDate() throws Exception {
+        Class<?> localDateClass = Class.forName("java.time.LocalDate");
+        Method localDateNow = localDateClass.getMethod("now");
+        Object localDate = localDateNow.invoke(null);
+
+        Class<?> jewishDateClass =
+                Class.forName("com.kosherjava.zmanim.hebrewcalendar.JewishDate");
+        Object jewishDate = jewishDateClass.getConstructor().newInstance();
+        Method setGregorianDate =
+                jewishDateClass.getMethod("setGregorianDate", localDateClass);
+        setGregorianDate.invoke(jewishDate, localDate);
+
+        Class<?> formatterClass =
+                Class.forName("com.kosherjava.zmanim.hebrewcalendar.HebrewDateFormatter");
+        Constructor<?> formatterConstructor = formatterClass.getConstructor();
+        Object formatter = formatterConstructor.newInstance();
+
+        formatterClass.getMethod("setHebrewFormat", boolean.class)
+                .invoke(formatter, true);
+        formatterClass.getMethod("setUseLongHebrewYears", boolean.class)
+                .invoke(formatter, true);
+
+        return (String) formatterClass
+                .getMethod("format", jewishDateClass)
+                .invoke(formatter, jewishDate);
     }
 
     private TextView textView(String text, float size, int color) {
@@ -160,30 +199,28 @@ public class MainActivity extends Activity {
     }
 
     private void hideSystemUi() {
-        Window w = getWindow();
-        if (android.os.Build.VERSION.SDK_INT >= 30) {
-            WindowInsetsController c = w.getInsetsController();
-            if (c != null) {
-                c.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
-                c.setSystemBarsBehavior(
-                        WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                );
-            }
-        } else {
-            w.getDecorView().setSystemUiVisibility(
-                    View.SYSTEM_UI_FLAG_FULLSCREEN
-                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-            );
-        }
+        getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+        );
     }
 
-    private static final class SpaceSpacer extends View {
-        SpaceSpacer(android.content.Context context) {
-            super(context);
+    private void showFatalError(Throwable t) {
+        try {
+            TextView error = textView(
+                    "Night Screen\n" + t.getClass().getSimpleName(),
+                    22,
+                    Color.WHITE
+            );
+            error.setGravity(Gravity.CENTER);
+            error.setBackgroundColor(Color.BLACK);
+            setContentView(error);
+        } catch (Throwable ignored) {
+            finish();
         }
     }
 }
