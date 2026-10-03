@@ -35,13 +35,13 @@ jobs:
 
       - name: Verify APK
         run: |
-          test -s app/build/outputs/apk/release/app-release.apk
-          sha256sum app/build/outputs/apk/release/app-release.apk
+          test -s app/build/outputs/apk/release/app-release-unsigned.apk
+          sha256sum app/build/outputs/apk/release/app-release-unsigned.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: NightScreen-release-apk
-          path: app/build/outputs/apk/release/app-release.apk
+          name: NightScreen-release-apk-unsigned
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
           if-no-files-found: error
           retention-days: 30
