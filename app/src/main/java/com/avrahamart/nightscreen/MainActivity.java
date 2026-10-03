@@ -476,7 +476,7 @@ public class MainActivity extends Activity {
                 title = "מדיה";
             }
 
-            mediaTitle.setText(title);
+            mediaTitle.setText(removeFileExtension(title));
             mediaPlayPause.setText(
                     playback == PlaybackState.STATE_PLAYING ? "Ⅱ" : "▶");
 
@@ -540,6 +540,17 @@ public class MainActivity extends Activity {
         if (mediaMirror != null) {
             mediaMirror.setVisibility(View.GONE);
         }
+    }
+
+    private String removeFileExtension(String title) {
+        if (title == null) return "";
+        String value = title.trim();
+        int slash = Math.max(value.lastIndexOf('/'), value.lastIndexOf('\\'));
+        int dot = value.lastIndexOf('.');
+        if (dot > slash + 0 && dot < value.length() - 1) {
+            return value.substring(0, dot);
+        }
+        return value;
     }
 
     private void sendPlayPause() {
