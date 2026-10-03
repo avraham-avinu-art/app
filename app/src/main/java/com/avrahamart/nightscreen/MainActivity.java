@@ -508,22 +508,12 @@ public class MainActivity extends Activity {
     }
 
     private void openNotificationAccessSettings() {
-        ComponentName component = new ComponentName(
-                this, SystemMediaNotificationListener.class);
+        // Use the top-level Notification Access page for maximum OEM compatibility.
+        // Some devices crash when launched with the newer detail-page extra.
+        Intent intent = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
         try {
-            Intent intent;
-            if (Build.VERSION.SDK_INT >= 30) {
-                intent = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS);
-                intent.putExtra(Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME, component);
-            } else {
-                intent = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
-            }
             startActivity(intent);
-        } catch (ActivityNotFoundException e) {
-            try {
-                startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
-            } catch (Throwable ignored) {
-            }
+        } catch (ActivityNotFoundException ignored) {
         } catch (Throwable ignored) {
         }
     }
