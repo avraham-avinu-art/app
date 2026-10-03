@@ -1,7 +1,5 @@
 package com.avrahamart.nightscreen;
 
-import java.util.Locale;
-
 public final class HebrewCalendar {
     private static final String[] MONTH_COMMON = {
         "ניסן", "אייר", "סיוון", "תמוז", "אב", "אלול",
@@ -23,17 +21,18 @@ public final class HebrewCalendar {
         int hy = hebrewYearAt(jd);
         long rosh = hebrewToJd(hy, 7, 1);
         int elapsed = (int) (jd - rosh);
+
         int hm = 7;
-        int hd = 1;
-
-        int months = isLeap(hy) ? 13 : 12;
-        while (elapsed >= daysInHebrewMonth(hy, hm)) {
-            elapsed -= daysInHebrewMonth(hy, hm);
-            hm = hm == months ? 1 : hm + 1;
+        while (hm <= (isLeap(hy) ? 13 : 12)) {
+            int len = daysInHebrewMonth(hy, hm);
+            if (elapsed < len) break;
+            elapsed -= len;
+            hm = hm == (isLeap(hy) ? 13 : 12) ? 1 : hm + 1;
         }
-        hd += elapsed;
 
-        return dayName(hd) + " " + (isLeap(hy) ? MONTH_LEAP[hm - 1] : MONTH_COMMON[hm - 1]) + " " + hebrewYearName(hy);
+        int hd = elapsed + 1;
+        String[] months = isLeap(hy) ? MONTH_LEAP : MONTH_COMMON;
+        return dayName(hd) + " " + months[hm - 1] + " " + hebrewYearName(hy);
     }
 
     private static int hebrewYearAt(long jd) {
@@ -44,23 +43,19 @@ public final class HebrewCalendar {
     }
 
     private static long hebrewToJd(int year, int month, int day) {
-        long jd = hebrewDelay1(year) + hebrewDelay2(year) + day + 347997;
+        long jd = hebrewDelay1(year) + hebrewDelay2(year) + day + 347997L;
+
         if (month < 7) {
-            int m = 7;
-            while (m <= (isLeap(year) ? 13 : 12)) {
+            int months = isLeap(year) ? 13 : 12;
+            for (int m = 7; m <= months; m++) {
                 jd += daysInHebrewMonth(year, m);
-                m++;
             }
-            m = 1;
-            while (m < month) {
+            for (int m = 1; m < month; m++) {
                 jd += daysInHebrewMonth(year, m);
-                m++;
             }
         } else {
-            int m = 7;
-            while (m < month) {
+            for (int m = 7; m < month; m++) {
                 jd += daysInHebrewMonth(year, m);
-                m++;
             }
         }
         return jd;
@@ -83,6 +78,11 @@ public final class HebrewCalendar {
         return 0;
     }
 
+    private static int daysInHebrewYear(int year) {
+        return (int) ((hebrewDelay1(year + 1) + hebrewDelay2(year + 1))
+                - (hebrewDelay1(year) + hebrewDelay2(year)));
+    }
+
     private static int daysInHebrewMonth(int year, int month) {
         if (month == 2 || month == 4 || month == 6 || month == 10 || month == 13) return 29;
         if (month == 12 && !isLeap(year)) return 29;
@@ -99,10 +99,6 @@ public final class HebrewCalendar {
         return daysInHebrewYear(year) % 10 == 3;
     }
 
-    private static int daysInHebrewYear(int year) {
-        return (int) (hebrewToJd(year + 1, 7, 1) - hebrewToJd(year, 7, 1));
-    }
-
     private static boolean isLeap(int year) {
         return ((7 * year + 1) % 19) < 7;
     }
@@ -111,7 +107,7 @@ public final class HebrewCalendar {
         int a = (14 - month) / 12;
         int y = year + 4800 - a;
         int m = month + 12 * a - 3;
-        return day + (153L * m + 2) / 5 + 365L * y + y / 4 - y / 100 + y / 400 - 32045;
+        return day + (153L * m + 2) / 5 + 365L * y + y / 4 - y / 100 + y / 400 - 32045L;
     }
 
     private static String dayName(int day) {
@@ -120,14 +116,15 @@ public final class HebrewCalendar {
 
     private static String hebrewYearName(int year) {
         int y = year % 1000;
-        String prefix = "ה׳";
-        return prefix + hebrewNumber(y);
+        return "ה׳" + hebrewNumber(y);
     }
 
     private static String hebrewNumber(int n) {
         final String[] hundreds = {"", "ק", "ר", "ש", "ת"};
         final String[] tens = {"", "י", "כ", "ל", "מ", "נ", "ס", "ע", "פ", "צ"};
         final String[] ones = {"", "א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט"};
+
+        if (n <= 0) return "";
         if (n == 15) return "ט״ו";
         if (n == 16) return "ט״ז";
 
@@ -135,6 +132,7 @@ public final class HebrewCalendar {
         int h = n / 100;
         int t = (n % 100) / 10;
         int o = n % 10;
+
         while (h >= 4) {
             out.append("ת");
             h -= 4;
