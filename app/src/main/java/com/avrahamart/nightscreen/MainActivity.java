@@ -247,9 +247,13 @@ public class MainActivity extends Activity {
         // The reference player is intentionally clean: the position row is
         // the first visible element and the three controls are widely spaced.
         mediaTitle = textView("", 17, Color.WHITE);
-        mediaTitle.setVisibility(View.GONE);
+        mediaTitle.setVisibility(View.VISIBLE);
+        mediaTitle.setGravity(Gravity.CENTER);
+        mediaTitle.setSingleLine(true);
         mediaDetails = textView("", 13, Color.rgb(175, 175, 175));
-        mediaDetails.setVisibility(View.GONE);
+        mediaDetails.setVisibility(View.VISIBLE);
+        mediaDetails.setGravity(Gravity.CENTER);
+        mediaDetails.setSingleLine(true);
         mediaProgressText = textView("", 12, Color.WHITE);
         mediaProgressText.setVisibility(View.GONE);
 
@@ -290,10 +294,10 @@ public class MainActivity extends Activity {
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
 
-        // Reference image: the line occupies about 72% of the screen width.
+        // The user requested the progress line to be 50% shorter than the previous version.
         int lineWidth = Math.max(
-                dp(180),
-                Math.round(getResources().getDisplayMetrics().widthPixels * 0.72f));
+                dp(120),
+                Math.round(getResources().getDisplayMetrics().widthPixels * 0.36f));
         mediaProgressRow.addView(mediaSeekBar,
                 new LinearLayout.LayoutParams(lineWidth, dp(32)));
 
@@ -308,8 +312,15 @@ public class MainActivity extends Activity {
 
         // Tight vertical gap matching the supplied reference image.
         View controlGap = new View(this);
-        mediaMirror.addView(mediaProgressRow,
-                new LinearLayout.LayoutParams(-1, dp(32)));
+        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(-1, dp(25));
+        titleParams.topMargin = dp(2);
+        mediaMirror.addView(mediaTitle, titleParams);
+        LinearLayout.LayoutParams detailsParams = new LinearLayout.LayoutParams(-1, dp(20));
+        mediaMirror.addView(mediaDetails, detailsParams);
+
+        LinearLayout.LayoutParams progressParams = new LinearLayout.LayoutParams(-1, dp(32));
+        progressParams.topMargin = dp(4);
+        mediaMirror.addView(mediaProgressRow, progressParams);
         mediaMirror.addView(controlGap,
                 new LinearLayout.LayoutParams(1, dp(30)));
 
@@ -319,16 +330,16 @@ public class MainActivity extends Activity {
         controls.setPadding(0, 0, 0, 0);
 
         int controlWidth = Math.max(
-                dp(240),
-                Math.round(getResources().getDisplayMetrics().widthPixels * 0.74f));
+                dp(180),
+                Math.round(getResources().getDisplayMetrics().widthPixels * 0.56f));
         LinearLayout.LayoutParams controlAreaParams =
-                new LinearLayout.LayoutParams(controlWidth, dp(64));
+                new LinearLayout.LayoutParams(controlWidth, dp(48));
         controlAreaParams.gravity = Gravity.CENTER_HORIZONTAL;
 
         mediaPrev = new MediaControlView(this, MediaControlView.PREVIOUS);
         mediaPrev.setContentDescription("הקודם");
         mediaPrev.setOnClickListener(v -> sendPrevious());
-        controls.addView(mediaPrev, new LinearLayout.LayoutParams(0, dp(64), 1f));
+        controls.addView(mediaPrev, new LinearLayout.LayoutParams(0, dp(48), 1f));
 
         mediaPlayPause = new MediaControlView(this, MediaControlView.PLAY_PAUSE);
         mediaPlayPause.setContentDescription("נגן");
@@ -351,7 +362,7 @@ public class MainActivity extends Activity {
                 new LinearLayout.LayoutParams(
                         Math.min(dp(760), Math.max(dp(1),
                                 getResources().getDisplayMetrics().widthPixels - dp(20))),
-                        dp(144));
+                        dp(158));
         mirrorParams.gravity = Gravity.CENTER_HORIZONTAL;
         mirrorParams.bottomMargin = dp(14);
         root.addView(mediaMirror, mirrorParams);
@@ -1045,6 +1056,7 @@ public class MainActivity extends Activity {
 
             title = removeFileExtension(title);
             mediaTitle.setText(title);
+            mediaTitle.setVisibility(View.VISIBLE);
             stopTitleMarquee();
             mediaTitle.post(() -> updateTitleMarqueeIfNeeded());
             lastTitle = title;
@@ -1064,7 +1076,7 @@ public class MainActivity extends Activity {
             long position = Math.max(0L, state.getPosition());
             if (duration > 0) position = Math.min(position, duration);
             mediaDetails.setText(lastArtist);
-            mediaDetails.setVisibility(getBool("showDetails", false) && !lastArtist.isEmpty() ? View.VISIBLE : View.GONE);
+            mediaDetails.setVisibility(!lastArtist.isEmpty() ? View.VISIBLE : View.GONE);
             boolean showProgress = getBool("showProgress", false) && duration > 0;
             mediaProgressRow.setVisibility(showProgress ? View.VISIBLE : View.GONE);
             mediaSeekBar.setVisibility(showProgress ? View.VISIBLE : View.GONE);
@@ -1309,9 +1321,9 @@ public class MainActivity extends Activity {
             p.setColor(Color.WHITE);
             p.setStyle(android.graphics.Paint.Style.FILL);
 
-            float h = u * 0.58f;
-            float barW = u * 0.075f;
-            float triW = u * 0.27f;
+            float h = u * 0.43f;
+            float barW = u * 0.055f;
+            float triW = u * 0.20f;
             float gap = u * 0.035f;
 
             if (kind == PREVIOUS) {
@@ -1344,18 +1356,18 @@ public class MainActivity extends Activity {
                 canvas.drawPath(tri, p);
             } else {
                 if (playing) {
-                    float ph = u * 0.62f;
-                    float pw = u * 0.13f;
-                    float pg = u * 0.11f;
+                    float ph = u * 0.48f;
+                    float pw = u * 0.09f;
+                    float pg = u * 0.08f;
                     canvas.drawRect(cx - pg / 2f - pw, cy - ph / 2f,
                             cx - pg / 2f, cy + ph / 2f, p);
                     canvas.drawRect(cx + pg / 2f, cy - ph / 2f,
                             cx + pg / 2f + pw, cy + ph / 2f, p);
                 } else {
                     android.graphics.Path tri = new android.graphics.Path();
-                    float left = cx - u * 0.18f;
-                    float right = cx + u * 0.22f;
-                    float ph = u * 0.58f;
+                    float left = cx - u * 0.14f;
+                    float right = cx + u * 0.17f;
+                    float ph = u * 0.43f;
                     tri.moveTo(left, cy - ph / 2f);
                     tri.lineTo(right, cy);
                     tri.lineTo(left, cy + ph / 2f);
