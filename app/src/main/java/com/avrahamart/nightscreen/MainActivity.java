@@ -765,7 +765,7 @@ public class MainActivity extends Activity {
             done.setOnClickListener(v -> dialog.dismiss());
             // Temporarily restore the system bars while settings are open,
             // so the notification shade can be pulled down normally.
-            showSystemUiForSettings();
+            hideSystemUi();
 
             dialog.setOnDismissListener(d -> {
                 applySettings();
