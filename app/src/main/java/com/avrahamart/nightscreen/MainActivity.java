@@ -1412,3 +1412,165 @@ public class MainActivity extends Activity {
     private void sendPlayPause() {
         try {
             if (mediaController != null) {
+                PlaybackState state = mediaController.getPlaybackState();
+                if (state != null) {
+                    if (state.getState() == PlaybackState.STATE_PLAYING) {
+                        if ((state.getActions() & PlaybackState.ACTION_PAUSE) != 0) {
+                            mediaController.getTransportControls().pause();
+                            return;
+                        }
+                    } else {
+                        if ((state.getActions() & PlaybackState.ACTION_PLAY) != 0) {
+                            mediaController.getTransportControls().play();
+                            return;
+                        }
+                    }
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+
+        // Some players expose media-key handling but not TransportControls.
+        try {
+            AudioManager audio = (AudioManager) getSystemService(AUDIO_SERVICE);
+            if (audio != null) {
+                long nowMs = System.currentTimeMillis();
+                audio.dispatchMediaKeyEvent(new KeyEvent(nowMs, nowMs,
+                        KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, 0));
+                audio.dispatchMediaKeyEvent(new KeyEvent(nowMs, nowMs,
+                        KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, 0));
+            }
+        } catch (Throwable ignored) {
+        }
+
+        if (mediaPlayPause != null) {
+            mediaPlayPause.postDelayed(this::renderMediaMirror, 180L);
+        }
+    }
+
+    private void sendPrevious() {
+        try {
+            if (mediaController != null) {
+                MediaController.TransportControls controls =
+                        mediaController.getTransportControls();
+                if (controls != null) {
+                    controls.skipToPrevious();
+                    handler.postDelayed(this::refreshSystemMediaMirror, 220L);
+                    return;
+                }
+            }
+        } catch (Throwable ignored) {}
+        dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS);
+    }
+
+    private void sendNext() {
+        try {
+            if (mediaController != null) {
+                MediaController.TransportControls controls =
+                        mediaController.getTransportControls();
+                if (controls != null) {
+                    controls.skipToNext();
+                    handler.postDelayed(this::refreshSystemMediaMirror, 220L);
+                    return;
+                }
+            }
+        } catch (Throwable ignored) {}
+        dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_NEXT);
+    }
+
+    private void dispatchMediaKey(int keyCode) {
+        try {
+            AudioManager audio = (AudioManager) getSystemService(AUDIO_SERVICE);
+            if (audio == null) return;
+            long nowMs = System.currentTimeMillis();
+            audio.dispatchMediaKeyEvent(new KeyEvent(nowMs, nowMs,
+                    KeyEvent.ACTION_DOWN, keyCode, 0));
+            audio.dispatchMediaKeyEvent(new KeyEvent(nowMs, nowMs,
+                    KeyEvent.ACTION_UP, keyCode, 0));
+            handler.postDelayed(this::refreshSystemMediaMirror, 250L);
+        } catch (Throwable ignored) {}
+    }
+
+    private TextView mediaButton(String symbol) {
+        TextView v = textView(symbol, 24, Color.WHITE);
+        v.setGravity(Gravity.CENTER);
+        v.setClickable(true);
+        v.setTypeface(Typeface.DEFAULT_BOLD);
+        return v;
+    }
+
+    private ImageView mediaIconButton(int drawableRes, String description) {
+        ImageView v = new ImageView(this);
+        v.setImageResource(drawableRes);
+        v.setScaleType(ImageView.ScaleType.CENTER);
+        v.setContentDescription(description);
+        v.setClickable(true);
+        v.setFocusable(true);
+        v.setBackgroundColor(Color.TRANSPARENT);
+        v.setPadding(0, 0, 0, 0);
+        v.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+        return v;
+    }
+
+    private TextView textView(String text, float size, int color) {
+        TextView v = new TextView(this);
+        v.setText(text);
+        v.setTextSize(size);
+        v.setTextColor(color);
+        return v;
+    }
+
+    private LinearLayout.LayoutParams matchWrap() {
+        return new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+    }
+
+    private int dp(int value) {
+        return Math.round(
+                value * getResources().getDisplayMetrics().density);
+    }
+
+    private void hideSystemUi() {
+        View decor = getWindow().getDecorView();
+        decor.setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+
+        if (android.os.Build.VERSION.SDK_INT >= 30) {
+            android.view.WindowInsetsController controller = decor.getWindowInsetsController();
+            if (controller != null) {
+                controller.hide(android.view.WindowInsets.Type.statusBars()
+                        | android.view.WindowInsets.Type.navigationBars()
+                        | android.view.WindowInsets.Type.captionBar());
+                controller.setSystemBarsBehavior(
+                        android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            }
+        }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            hideSystemUi();
+        }
+    }
+
+    private void showFatalError(Throwable t) {
+        try {
+            TextView error = textView(
+                    "שומר מסך\n" + t.getClass().getSimpleName(),
+                    22, Color.WHITE);
+            error.setGravity(Gravity.CENTER);
+            error.setBackgroundColor(Color.BLACK);
+            setContentView(error);
+        } catch (Throwable ignored) {
+            finish();
+        }
+    }
+}
