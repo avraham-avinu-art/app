@@ -688,70 +688,68 @@ public class MainActivity extends Activity {
 
             ScrollView scroll = new ScrollView(this);
             scroll.setFillViewport(true);
-            scroll.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
+            scroll.setVerticalScrollBarEnabled(true);
+            scroll.setOverScrollMode(View.OVER_SCROLL_ALWAYS);
+
             LinearLayout box = new LinearLayout(this);
             box.setOrientation(LinearLayout.VERTICAL);
-            box.setGravity(Gravity.CENTER_HORIZONTAL);
-            box.setPadding(dp(12), dp(8), dp(12), dp(12));
+            box.setPadding(dp(10), dp(8), dp(10), dp(12));
             box.setBackgroundColor(Color.rgb(248, 249, 251));
             scroll.addView(box);
 
             TextView h = textView("הגדרות", 22, Color.rgb(25, 28, 35));
             h.setGravity(Gravity.CENTER);
             h.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
-            box.addView(h, new LinearLayout.LayoutParams(-1, dp(40)));
+            box.addView(h, new LinearLayout.LayoutParams(-1, dp(42)));
 
-            // 1. תצוגת במסך
-            addSection(box, "תצוגת במסך");
-            addCheck(box, "תאריך עברי", "showHebrew", true);
-            addCheck(box, "תאריך לועזי", "showGregorian", true);
-            addCheck(box, "נגן", "showPlayer", true);
-
-            // 2. גופן
-            addSection(box, "גופן");
-            addSpinner(box, "צבע",
-                    new String[]{"לבן","אפור בהיר","אפור","כחול עדין"},
-                    new String[]{"white","light","gray","blue"}, "fontColor");
-            addSpinner(box, "עובי",
-                    new String[]{"רגיל","בינוני","מודגש"},
-                    new String[]{"0","1","2"}, "fontWeight");
-            addSpinner(box, "סוג",
-                    new String[]{"Sans","Monospace","Serif"},
-                    new String[]{"sans-serif","monospace","serif"}, "fontFamily");
-
-            // 3. תצוגת שעון ותאריך
-            addSection(box, "תצוגת שעון ותאריך");
-            addSpinner(box, "גודל",
-                    new String[]{"קטן","בינוני","גדול","גדול מאוד"},
-                    new String[]{"38","48","60","72"}, "clockDateSize");
-            addSpinner(box, "מיקום",
-                    new String[]{"הכי למעלה","ברבע העליון","באמצע המסך"},
-                    new String[]{"top","upper","middle"}, "clockDatePosition");
-            addSpinner(box, "זמן פעילות",
+            // Each section is a single Card-like container. Every relevant row is
+            // added inside that same container, so nothing belongs outside its frame.
+            LinearLayout s1 = addCard(box, "תצוגה במסך");
+            addCheck(s1, "תאריך עברי", "showHebrew", true);
+            addCheck(s1, "תאריך לועזי", "showGregorian", true);
+            addCheck(s1, "נגן", "showPlayer", true);
+            addSpinner(s1, "זמן פעילות",
                     new String[]{"ללא כיבוי","1 דקות","5 דקות"},
                     new String[]{"0","1","5"}, "screenSaverDuration");
 
-            // 4. תצוגת הנגן
-            addSection(box, "תצוגת הנגן");
-            addCheck(box, "פרטי אמן", "showDetails", getBool("showDetails", true));
-            addCheck(box, "שורת מיקום + זמן", "showProgress", true);
-            addSpinner(box, "גודל הנגן",
+            LinearLayout s2 = addCard(box, "גופן");
+            addSpinner(s2, "צבע",
+                    new String[]{"לבן","אפור בהיר","אפור","כחול עדין"},
+                    new String[]{"white","light","gray","blue"}, "fontColor");
+            addSpinner(s2, "עובי",
+                    new String[]{"רגיל","בינוני","מודגש"},
+                    new String[]{"0","1","2"}, "fontWeight");
+            addSpinner(s2, "סוג",
+                    new String[]{"Sans","Monospace","Serif"},
+                    new String[]{"sans-serif","monospace","serif"}, "fontFamily");
+
+            LinearLayout s3 = addCard(box, "תצוגת שעון ותאריך");
+            addSpinner(s3, "גודל",
+                    new String[]{"קטן","בינוני","גדול","גדול מאוד"},
+                    new String[]{"38","48","60","72"}, "clockDateSize");
+            addSpinner(s3, "מיקום",
+                    new String[]{"הכי למעלה","ברבע העליון","באמצע המסך"},
+                    new String[]{"top","upper","middle"}, "clockDatePosition");
+
+            LinearLayout s4 = addCard(box, "תצוגת הנגן");
+            addCheck(s4, "פרטי אמן", "showDetails", getBool("showDetails", true));
+            addCheck(s4, "שורת מיקום + זמן", "showProgress", true);
+            addSpinner(s4, "גודל הנגן",
                     new String[]{"קטן","בינוני","גדול","גדול מאוד"},
                     new String[]{"14","17","20","23"}, "playerSize");
-            addSpinner(box, "מיקום הנגן",
+            addSpinner(s4, "מיקום הנגן",
                     new String[]{"בשליש התחתון","הכי למטה"},
                     new String[]{"lower","bottom"}, "playerPosition");
 
-            // 5. מסגרת לנגן
-            addSection(box, "מסגרת לנגן");
-            addCheck(box, "הצג מסגרת", "frameEnabled", false);
-            addSpinner(box, "צבע מסגרת",
+            LinearLayout s5 = addCard(box, "מסגרת לנגן");
+            addCheck(s5, "הצג מסגרת", "frameEnabled", false);
+            addSpinner(s5, "צבע מסגרת",
                     new String[]{"לבן","אפור","אפור בהיר","כסף"},
                     new String[]{"white","gray","light","silver"}, "frameColor");
-            addSpinner(box, "עובי מסגרת",
+            addSpinner(s5, "עובי מסגרת",
                     new String[]{"דקה","בינונית","עבה"},
                     new String[]{"1","2","3"}, "frameWidth");
-            addSpinner(box, "עיגול פינות",
+            addSpinner(s5, "עיגול פינות",
                     new String[]{"ישר","עדין","מעוגל"},
                     new String[]{"0","10","20"}, "frameRadius");
 
@@ -767,13 +765,12 @@ public class MainActivity extends Activity {
             doneBg.setCornerRadius(dp(12));
             done.setBackground(doneBg);
             LinearLayout.LayoutParams doneParams =
-                    new LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.WRAP_CONTENT, dp(46));
+                    new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dp(46));
             doneParams.gravity = Gravity.CENTER_HORIZONTAL;
-            doneParams.topMargin = dp(4);
+            doneParams.topMargin = dp(6);
             box.addView(done, doneParams);
 
-            AlertDialog dialog = new AlertDialog.Builder(this).setView(scroll).create();
+            final AlertDialog dialog = new AlertDialog.Builder(this).setView(scroll).create();
             done.setOnClickListener(v -> dialog.dismiss());
             settingsDialogOpen = true;
             dialog.setOnDismissListener(d -> {
@@ -787,14 +784,13 @@ public class MainActivity extends Activity {
             dialog.show();
             if (dialog.getWindow() != null) {
                 android.view.Window window = dialog.getWindow();
-                window.setBackgroundDrawableResource(android.R.color.white);
                 window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN);
                 window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
                 window.setStatusBarColor(Color.BLACK);
                 window.setNavigationBarColor(Color.BLACK);
 
-                // Keep the dialog out of immersive mode so the system can receive
-                // the swipe from the top edge and open the notification shade.
+                // Never request fullscreen/immersive flags on the settings dialog.
+                // The system owns the top edge, allowing the notification shade gesture.
                 window.getDecorView().setSystemUiVisibility(0);
                 if (Build.VERSION.SDK_INT >= 30) {
                     android.view.WindowInsetsController controller =
@@ -807,15 +803,36 @@ public class MainActivity extends Activity {
                     }
                 }
 
-                int width = Math.min(
-                        getResources().getDisplayMetrics().widthPixels - dp(16), dp(600));
-                int height = Math.min(
-                        getResources().getDisplayMetrics().heightPixels - dp(16), dp(820));
+                int width = Math.min(getResources().getDisplayMetrics().widthPixels - dp(16), dp(600));
+                int height = Math.min(getResources().getDisplayMetrics().heightPixels - dp(16), dp(820));
                 window.setLayout(width, height);
             }
         } catch (Throwable t) {
             showFatalError(t);
         }
+    }
+
+    private LinearLayout addCard(LinearLayout parent, String title) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(12), dp(6), dp(12), dp(8));
+
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.WHITE);
+        bg.setCornerRadius(dp(14));
+        bg.setStroke(dp(1), Color.rgb(225, 228, 234));
+        card.setBackground(bg);
+
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        p.setMargins(dp(2), dp(5), dp(2), dp(5));
+        parent.addView(card, p);
+
+        TextView titleView = textView(title, 18, Color.rgb(35, 39, 48));
+        titleView.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+        titleView.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
+        card.addView(titleView, new LinearLayout.LayoutParams(-1, dp(38)));
+        return card;
     }
 
     private void addSection(LinearLayout b, String title) {
