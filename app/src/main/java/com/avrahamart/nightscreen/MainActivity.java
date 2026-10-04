@@ -240,7 +240,7 @@ public class MainActivity extends Activity {
         mediaMirror = new LinearLayout(this);
         mediaMirror.setOrientation(LinearLayout.VERTICAL);
         mediaMirror.setGravity(Gravity.CENTER);
-        mediaMirror.setPadding(dp(10), dp(4), dp(10), dp(4));
+        mediaMirror.setPadding(dp(6), dp(2), dp(6), dp(2));
         mediaMirror.setBackgroundColor(Color.BLACK);
         mediaMirror.setVisibility(View.GONE);
 
@@ -267,14 +267,14 @@ public class MainActivity extends Activity {
         LinearLayout progressRow = mediaProgressRow;
         progressRow.setOrientation(LinearLayout.HORIZONTAL);
         progressRow.setGravity(Gravity.CENTER_VERTICAL);
-        progressRow.setPadding(dp(8), 0, dp(8), 0);
+        progressRow.setPadding(dp(16), 0, dp(16), 0);
         progressRow.setVisibility(View.GONE);
 
         mediaCurrentText = textView("0:00", 12, Color.WHITE);
         mediaCurrentText.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
         mediaCurrentText.setSingleLine(true);
         mediaCurrentText.setIncludeFontPadding(false);
-        progressRow.addView(mediaCurrentText, new LinearLayout.LayoutParams(dp(48), dp(28)));
+        progressRow.addView(mediaCurrentText, new LinearLayout.LayoutParams(dp(42), dp(28)));
 
         mediaSeekBar = new SeekBar(this);
         mediaSeekBar.setVisibility(View.GONE);
@@ -304,7 +304,7 @@ public class MainActivity extends Activity {
         mediaTotalText.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         mediaTotalText.setSingleLine(true);
         mediaTotalText.setIncludeFontPadding(false);
-        progressRow.addView(mediaTotalText, new LinearLayout.LayoutParams(dp(48), dp(28)));
+        progressRow.addView(mediaTotalText, new LinearLayout.LayoutParams(dp(42), dp(28)));
         mediaMirror.addView(progressRow, new LinearLayout.LayoutParams(-1, dp(30)));
         mediaProgressText = textView("", 1, Color.TRANSPARENT);
         mediaProgressText.setVisibility(View.GONE);
@@ -315,14 +315,14 @@ public class MainActivity extends Activity {
         controls.setGravity(Gravity.CENTER);
         controls.setPadding(0, 0, 0, 0);
 
-        mediaPrev = mediaButton("|◀");
-        mediaPrev.setTextSize(25);
-        mediaPrev.setTypeface(Typeface.DEFAULT);
-        mediaPrev.setTextColor(Color.WHITE);
-        mediaPrev.setBackgroundColor(Color.TRANSPARENT);
-        mediaPrev.setGravity(Gravity.CENTER);
-        mediaPrev.setOnClickListener(v -> sendPrevious());
-        controls.addView(mediaPrev, new LinearLayout.LayoutParams(0, dp(52), 1f));
+        mediaNext = mediaButton("▶|");
+        mediaNext.setTextSize(25);
+        mediaNext.setTypeface(Typeface.DEFAULT);
+        mediaNext.setTextColor(Color.WHITE);
+        mediaNext.setBackgroundColor(Color.TRANSPARENT);
+        mediaNext.setGravity(Gravity.CENTER);
+        mediaNext.setOnClickListener(v -> sendNext());
+        controls.addView(mediaNext, new LinearLayout.LayoutParams(dp(62), dp(52)));
 
         mediaPlayPause = mediaButton("Ⅱ");
         mediaPlayPause.setTextSize(34);
@@ -331,16 +331,16 @@ public class MainActivity extends Activity {
         mediaPlayPause.setBackgroundColor(Color.TRANSPARENT);
         mediaPlayPause.setGravity(Gravity.CENTER);
         mediaPlayPause.setOnClickListener(v -> sendPlayPause());
-        controls.addView(mediaPlayPause, new LinearLayout.LayoutParams(0, dp(52), 1f));
+        controls.addView(mediaPlayPause, new LinearLayout.LayoutParams(dp(62), dp(52)));
 
-        mediaNext = mediaButton("▶|");
-        mediaNext.setTextSize(25);
-        mediaNext.setTypeface(Typeface.DEFAULT);
-        mediaNext.setTextColor(Color.WHITE);
-        mediaNext.setBackgroundColor(Color.TRANSPARENT);
-        mediaNext.setGravity(Gravity.CENTER);
-        mediaNext.setOnClickListener(v -> sendNext());
-        controls.addView(mediaNext, new LinearLayout.LayoutParams(0, dp(52), 1f));
+        mediaPrev = mediaButton("|◀");
+        mediaPrev.setTextSize(25);
+        mediaPrev.setTypeface(Typeface.DEFAULT);
+        mediaPrev.setTextColor(Color.WHITE);
+        mediaPrev.setBackgroundColor(Color.TRANSPARENT);
+        mediaPrev.setGravity(Gravity.CENTER);
+        mediaPrev.setOnClickListener(v -> sendPrevious());
+        controls.addView(mediaPrev, new LinearLayout.LayoutParams(dp(62), dp(52)));
 
         mediaMirror.addView(controls, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(52)));
@@ -365,7 +365,7 @@ public class MainActivity extends Activity {
                 getResources().getDisplayMetrics().widthPixels - dp(32));
         LinearLayout.LayoutParams mirrorParams =
                 new LinearLayout.LayoutParams(
-                        Math.min(dp(760), availableWidth), dp(200));
+                        Math.min(dp(760), availableWidth), LinearLayout.LayoutParams.WRAP_CONTENT);
         mirrorParams.gravity = Gravity.CENTER_HORIZONTAL;
         mirrorParams.bottomMargin = dp(6);
         root.addView(mediaMirror, mirrorParams);
@@ -503,7 +503,10 @@ public class MainActivity extends Activity {
             mediaSeekBar.setProgressTintList(android.content.res.ColorStateList.valueOf(color));
             mediaSeekBar.setThumbTintList(android.content.res.ColorStateList.valueOf(color));
 
-            if (getBool("frameEnabled", false)) {
+            boolean hasActiveSong = mediaController != null &&
+                    mediaController.getMetadata() != null &&
+                    !safeString(mediaController.getMetadata().getString(MediaMetadata.METADATA_KEY_TITLE)).isEmpty();
+            if (getBool("frameEnabled", false) && hasActiveSong) {
                 GradientDrawable bg = new GradientDrawable();
                 bg.setColor(Color.BLACK);
                 bg.setCornerRadius(dp(getInt("frameRadius", 10)));
@@ -576,8 +579,8 @@ public class MainActivity extends Activity {
             addSection(box, "מסגרת נגן");
             addCheck(box, "הצג מסגרת", "frameEnabled", false);
             addSpinner(box, "צבע מסגרת",
-                    new String[]{"אפור כחול","כסוף","סגול עדין","זהב עדין"},
-                    new String[]{"slate","silver","purple","gold"}, "frameColor");
+                    new String[]{"לבן","אפור","אפור בהיר","כסף"},
+                    new String[]{"white","gray","light","silver"}, "frameColor");
             addSpinner(box, "עובי מסגרת",
                     new String[]{"דקה","בינונית","עבה"},
                     new String[]{"1","2","3"}, "frameWidth");
