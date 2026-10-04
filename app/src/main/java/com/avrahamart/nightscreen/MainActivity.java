@@ -265,16 +265,18 @@ public class MainActivity extends Activity {
         LinearLayout progressRow = new LinearLayout(this);
         progressRow.setOrientation(LinearLayout.HORIZONTAL);
         progressRow.setGravity(Gravity.CENTER_VERTICAL);
+        progressRow.setPadding(0, 0, 0, 0);
         progressRow.setVisibility(View.GONE);
 
         mediaCurrentText = textView("0:00", 12, Color.WHITE);
         mediaCurrentText.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
         mediaCurrentText.setSingleLine(true);
-        progressRow.addView(mediaCurrentText, new LinearLayout.LayoutParams(dp(42), dp(28)));
+        mediaCurrentText.setIncludeFontPadding(false);
+        progressRow.addView(mediaCurrentText, new LinearLayout.LayoutParams(dp(34), dp(28)));
 
         mediaSeekBar = new SeekBar(this);
         mediaSeekBar.setVisibility(View.GONE);
-        mediaSeekBar.setPadding(dp(4), 0, dp(4), 0);
+        mediaSeekBar.setPadding(0, 0, 0, 0);
         // Progress fills visually from left to right.
         mediaSeekBar.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
         mediaSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -299,43 +301,44 @@ public class MainActivity extends Activity {
         mediaTotalText = textView("0:00", 12, Color.WHITE);
         mediaTotalText.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         mediaTotalText.setSingleLine(true);
-        progressRow.addView(mediaTotalText, new LinearLayout.LayoutParams(dp(42), dp(28)));
+        mediaTotalText.setIncludeFontPadding(false);
+        progressRow.addView(mediaTotalText, new LinearLayout.LayoutParams(dp(34), dp(28)));
         mediaMirror.addView(progressRow, new LinearLayout.LayoutParams(-1, dp(30)));
         mediaProgressText = textView("", 1, Color.TRANSPARENT);
         mediaProgressText.setVisibility(View.GONE);
 
-        // Row 2: clearly visible, modern, subtle controls.
+        // Row 2: three equal zones, matching the reference layout exactly.
         LinearLayout controls = new LinearLayout(this);
         controls.setOrientation(LinearLayout.HORIZONTAL);
         controls.setGravity(Gravity.CENTER);
-        controls.setPadding(dp(8), 0, dp(8), 0);
+        controls.setPadding(0, 0, 0, 0);
 
         mediaPrev = mediaButton("|◀");
-        mediaPrev.setTextSize(25);
+        mediaPrev.setTextSize(24);
         mediaPrev.setTypeface(Typeface.DEFAULT);
         mediaPrev.setTextColor(Color.WHITE);
         mediaPrev.setBackgroundColor(Color.TRANSPARENT);
+        mediaPrev.setGravity(Gravity.CENTER);
         mediaPrev.setOnClickListener(v -> sendPrevious());
-        controls.addView(mediaPrev, flatControlParams());
+        controls.addView(mediaPrev, new LinearLayout.LayoutParams(0, dp(52), 1f));
 
         mediaPlayPause = mediaButton("Ⅱ");
-        mediaPlayPause.setTextSize(32);
+        mediaPlayPause.setTextSize(31);
         mediaPlayPause.setTypeface(Typeface.DEFAULT_BOLD);
         mediaPlayPause.setTextColor(Color.WHITE);
         mediaPlayPause.setBackgroundColor(Color.TRANSPARENT);
+        mediaPlayPause.setGravity(Gravity.CENTER);
         mediaPlayPause.setOnClickListener(v -> sendPlayPause());
-        LinearLayout.LayoutParams playParams = flatControlParams();
-        playParams.leftMargin = dp(18);
-        playParams.rightMargin = dp(18);
-        controls.addView(mediaPlayPause, playParams);
+        controls.addView(mediaPlayPause, new LinearLayout.LayoutParams(0, dp(52), 1f));
 
         mediaNext = mediaButton("▶|");
-        mediaNext.setTextSize(25);
+        mediaNext.setTextSize(24);
         mediaNext.setTypeface(Typeface.DEFAULT);
         mediaNext.setTextColor(Color.WHITE);
         mediaNext.setBackgroundColor(Color.TRANSPARENT);
+        mediaNext.setGravity(Gravity.CENTER);
         mediaNext.setOnClickListener(v -> sendNext());
-        controls.addView(mediaNext, flatControlParams());
+        controls.addView(mediaNext, new LinearLayout.LayoutParams(0, dp(52), 1f));
 
         mediaMirror.addView(controls, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(52)));
