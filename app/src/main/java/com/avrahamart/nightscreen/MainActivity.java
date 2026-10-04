@@ -38,7 +38,7 @@ import android.widget.SeekBar;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import androidx.appcompat.widget.SwitchCompat;
+import android.widget.Switch;
 
 import com.kosherjava.zmanim.hebrewcalendar.HebrewDateFormatter;
 import com.kosherjava.zmanim.hebrewcalendar.JewishDate;
@@ -64,6 +64,7 @@ public class MainActivity extends Activity {
     private SharedPreferences prefs;
     private TextView settingsButton;
     private LinearLayout currentSettingsCard;
+    private boolean settingsDialogOpen = false;
     private FrameLayout stageView;
     private LinearLayout clockBlockView;
     private LinearLayout mediaHolderView;
@@ -763,20 +764,21 @@ public class MainActivity extends Activity {
 
             AlertDialog dialog = new AlertDialog.Builder(this).setView(scroll).create();
             done.setOnClickListener(v -> dialog.dismiss());
-            // Temporarily restore the system bars while settings are open,
-            // so the notification shade can be pulled down normally.
-            hideSystemUi();
-
+            settingsDialogOpen = true;
             dialog.setOnDismissListener(d -> {
                 applySettings();
                 refreshSystemMediaMirror();
                 scheduleAutoOff();
+                settingsDialogOpen = false;
                 hideSystemUi();
             });
 
             dialog.show();
             if (dialog.getWindow() != null) {
                 dialog.getWindow().setBackgroundDrawableResource(android.R.color.white);
+                dialog.getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN);
+                dialog.getWindow().getDecorView().setSystemUiVisibility(
+                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
                 dialog.getWindow().setDimAmount(0.45f);
                 dialog.getWindow().setLayout(
                         Math.min(getResources().getDisplayMetrics().widthPixels - dp(16), dp(600)),
@@ -817,7 +819,7 @@ public class MainActivity extends Activity {
     }
 
     private void addCheck(LinearLayout b, String s, String k, boolean d) {
-        SwitchCompat x = new SwitchCompat(this);
+        Switch x = new Switch(this);
         x.setText(s);
         x.setTextColor(Color.rgb(35, 38, 45));
         x.setTextSize(15);
@@ -1585,7 +1587,7 @@ public class MainActivity extends Activity {
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
-        if (hasFocus) {
+        if (hasFocus && !settingsDialogOpen) {
             hideSystemUi();
         }
     }
