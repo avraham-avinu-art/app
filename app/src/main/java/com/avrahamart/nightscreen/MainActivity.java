@@ -336,7 +336,7 @@ public class MainActivity extends Activity {
                 getResources().getDisplayMetrics().widthPixels - dp(32));
         LinearLayout.LayoutParams mirrorParams =
                 new LinearLayout.LayoutParams(
-                        Math.min(dp(760), availableWidth), dp(145));
+                        Math.min(dp(760), availableWidth), dp(200));
         mirrorParams.gravity = Gravity.CENTER_HORIZONTAL;
         mirrorParams.bottomMargin = dp(6);
         root.addView(mediaMirror, mirrorParams);
@@ -814,7 +814,6 @@ public class MainActivity extends Activity {
                     mediaDetails.setText(lastArtist);
                     mediaDetails.setVisibility(getBool("showDetails", false) ? View.VISIBLE : View.GONE);
                     mediaProgressText.setVisibility(View.GONE);
-                    mediaSeekBar.setVisibility(View.GONE);
                     mediaSeekBar.setVisibility(View.GONE);
                     mediaNext.setVisibility(View.GONE);
                     mediaPrev.setVisibility(View.GONE);
