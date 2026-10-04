@@ -267,7 +267,8 @@ public class MainActivity extends Activity {
         mediaSeekBar = new SeekBar(this);
         mediaSeekBar.setVisibility(View.GONE);
         mediaSeekBar.setPadding(dp(4), 0, dp(4), 0);
-        mediaSeekBar.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        // Progress fills visually from left to right.
+        mediaSeekBar.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
         mediaSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser && mediaController != null) {
@@ -294,41 +295,46 @@ public class MainActivity extends Activity {
         controls.setGravity(Gravity.CENTER);
         controls.setPadding(dp(8), 0, dp(8), 0);
 
-        mediaNext = mediaButton("›");
-        mediaNext.setTextSize(30);
-        mediaNext.setTypeface(Typeface.DEFAULT_BOLD);
-        mediaNext.setTextColor(Color.WHITE);
-        mediaNext.setBackground(makeMediaButtonBackground());
-        mediaNext.setOnClickListener(v -> sendNext());
-        controls.addView(mediaNext, buttonParams());
+        mediaPrev = mediaButton("|◀");
+        mediaPrev.setTextSize(25);
+        mediaPrev.setTypeface(Typeface.DEFAULT);
+        mediaPrev.setTextColor(Color.WHITE);
+        mediaPrev.setBackgroundColor(Color.TRANSPARENT);
+        mediaPrev.setOnClickListener(v -> sendPrevious());
+        controls.addView(mediaPrev, flatControlParams());
 
-        mediaPlayPause = mediaButton("▶");
-        mediaPlayPause.setTextSize(20);
+        mediaPlayPause = mediaButton("Ⅱ");
+        mediaPlayPause.setTextSize(32);
         mediaPlayPause.setTypeface(Typeface.DEFAULT_BOLD);
         mediaPlayPause.setTextColor(Color.WHITE);
-        mediaPlayPause.setBackground(makeMediaButtonBackground());
+        mediaPlayPause.setBackgroundColor(Color.TRANSPARENT);
         mediaPlayPause.setOnClickListener(v -> sendPlayPause());
-        LinearLayout.LayoutParams playParams = buttonParams();
-        playParams.leftMargin = dp(8);
-        playParams.rightMargin = dp(8);
+        LinearLayout.LayoutParams playParams = flatControlParams();
+        playParams.leftMargin = dp(18);
+        playParams.rightMargin = dp(18);
         controls.addView(mediaPlayPause, playParams);
 
-        mediaPrev = mediaButton("‹");
-        mediaPrev.setTextSize(30);
-        mediaPrev.setTypeface(Typeface.DEFAULT_BOLD);
-        mediaPrev.setTextColor(Color.WHITE);
-        mediaPrev.setBackground(makeMediaButtonBackground());
-        mediaPrev.setOnClickListener(v -> sendPrevious());
-        controls.addView(mediaPrev, buttonParams());
+        mediaNext = mediaButton("▶|");
+        mediaNext.setTextSize(25);
+        mediaNext.setTypeface(Typeface.DEFAULT);
+        mediaNext.setTextColor(Color.WHITE);
+        mediaNext.setBackgroundColor(Color.TRANSPARENT);
+        mediaNext.setOnClickListener(v -> sendNext());
+        controls.addView(mediaNext, flatControlParams());
 
         mediaMirror.addView(controls, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(54)));
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(52)));
 
-        lastMediaButton = mediaButton("▶ השמעה אחרונה");
-        lastMediaButton.setTextSize(13);
+        lastMediaButton = mediaButton("play\\n⏻");
+        lastMediaButton.setTextSize(15);
+        lastMediaButton.setGravity(Gravity.CENTER);
+        lastMediaButton.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
+        lastMediaButton.setTextColor(Color.WHITE);
+        lastMediaButton.setAlpha(0.50f);
+        lastMediaButton.setBackgroundColor(Color.TRANSPARENT);
         lastMediaButton.setVisibility(View.GONE);
         lastMediaButton.setOnClickListener(v -> playLastMedia());
-        mediaMirror.addView(lastMediaButton, new LinearLayout.LayoutParams(-2, dp(38)));
+        mediaMirror.addView(lastMediaButton, new LinearLayout.LayoutParams(dp(72), dp(62)));
 
         int availableWidth = Math.max(
                 dp(1),
@@ -350,8 +356,8 @@ public class MainActivity extends Activity {
         return bg;
     }
 
-    private LinearLayout.LayoutParams buttonParams() {
-        return new LinearLayout.LayoutParams(dp(58), dp(46));
+    private LinearLayout.LayoutParams flatControlParams() {
+        return new LinearLayout.LayoutParams(dp(54), dp(50));
     }
 
     private TextView mediaButton(String symbol) {
