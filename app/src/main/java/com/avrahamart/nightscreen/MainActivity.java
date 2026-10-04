@@ -251,7 +251,7 @@ public class MainActivity extends Activity {
             } else {
                 mp.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
                 int mediaH = Math.max(0, mediaHolder.getMeasuredHeight());
-                mp.topMargin = Math.max(0, Math.round(h * 0.66f - mediaH / 2f));
+                mp.topMargin = Math.max(0, Math.round((h * 2f / 3f) - mediaH));
                 mp.bottomMargin = 0;
                 mp.height = FrameLayout.LayoutParams.WRAP_CONTENT;
             }
@@ -748,12 +748,12 @@ public class MainActivity extends Activity {
             Button done = new Button(this);
             done.setText("סיום");
             done.setTextColor(Color.WHITE);
-            done.setTextSize(16);
+            done.setTextSize(15);
             GradientDrawable doneBg = new GradientDrawable();
             doneBg.setColor(Color.rgb(55, 95, 145));
             doneBg.setCornerRadius(dp(12));
             done.setBackground(doneBg);
-            LinearLayout.LayoutParams doneParams = new LinearLayout.LayoutParams(dp(300), dp(42));
+            LinearLayout.LayoutParams doneParams = new LinearLayout.LayoutParams(dp(280), dp(40));
             doneParams.gravity = Gravity.CENTER_HORIZONTAL;
             doneParams.topMargin = dp(5);
             box.addView(done, doneParams);
@@ -784,14 +784,14 @@ public class MainActivity extends Activity {
         v.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         v.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
         v.setPadding(dp(4), 0, dp(4), 0);
-        b.addView(v, new LinearLayout.LayoutParams(-1, dp(30)));
+        b.addView(v, new LinearLayout.LayoutParams(-1, dp(26)));
     }
 
     private void addCheck(LinearLayout b, String s, String k, boolean d) {
         CheckBox x = new CheckBox(this);
         x.setText(s);
         x.setTextColor(Color.rgb(35, 38, 45));
-        x.setTextSize(16);
+        x.setTextSize(15);
         x.setPadding(dp(2), 0, dp(2), 0);
         x.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         if (Build.VERSION.SDK_INT >= 21) {
@@ -805,7 +805,7 @@ public class MainActivity extends Activity {
             } catch (Throwable ignored) {
             }
         });
-        b.addView(x, new LinearLayout.LayoutParams(-1, dp(36)));
+        b.addView(x, new LinearLayout.LayoutParams(-1, dp(32)));
     }
 
     private void addSpinner(LinearLayout b, String label, String[] names,
@@ -815,7 +815,7 @@ public class MainActivity extends Activity {
 
         TextView l = textView(label, 16, Color.rgb(45, 48, 55));
         l.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
-        row.addView(l, new LinearLayout.LayoutParams(0, dp(38), 1f));
+        row.addView(l, new LinearLayout.LayoutParams(0, dp(34), 1f));
 
         Spinner sp = new Spinner(this);
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(
@@ -823,7 +823,7 @@ public class MainActivity extends Activity {
             @Override public View getView(int position, View convertView, android.view.ViewGroup parent) {
                 TextView v = (TextView) super.getView(position, convertView, parent);
                 v.setTextColor(Color.rgb(35, 38, 45));
-                v.setTextSize(15);
+                v.setTextSize(14);
                 v.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
                 v.setPadding(dp(8), 0, dp(8), 0);
                 return v;
@@ -836,7 +836,7 @@ public class MainActivity extends Activity {
                 v.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
                 v.setPadding(dp(10), 0, dp(10), 0);
                 v.setBackgroundColor(Color.WHITE);
-                v.setMinHeight(dp(36));
+                v.setMinHeight(dp(32));
                 return v;
             }
         };
@@ -917,7 +917,7 @@ public class MainActivity extends Activity {
                     }
                 });
 
-        row.addView(sp, new LinearLayout.LayoutParams(dp(160), dp(38)));
+        row.addView(sp, new LinearLayout.LayoutParams(dp(150), dp(34)));
         b.addView(row);
     }
 
