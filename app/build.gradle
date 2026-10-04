@@ -23,16 +23,6 @@ android {
     }
 }
 
-configurations.all {
-    resolutionStrategy.eachDependency { details ->
-        if (details.requested.group == 'org.jetbrains.kotlin') {
-            details.useVersion '1.8.22'
-            details.because 'Keep Kotlin stdlib modules on one compatible version and avoid duplicate classes'
-        }
-    }
-}
-
 dependencies {
-    implementation 'androidx.appcompat:appcompat:1.7.0'
     implementation 'com.kosherjava:zmanim:2.5.0'
 }
