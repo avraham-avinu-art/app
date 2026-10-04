@@ -549,6 +549,8 @@ public class MainActivity extends Activity {
             mediaPlayPause.setBackgroundColor(Color.TRANSPARENT);
         }
 
+    }
+
     private void showSettings() {
         try {
             if (prefs == null) initSettings();
