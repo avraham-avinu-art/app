@@ -306,12 +306,12 @@ public class MainActivity extends Activity {
         totalParams.leftMargin = dp(11);
         mediaProgressRow.addView(mediaTotalText, totalParams);
 
-        // 48dp empty space reproduces the vertical gap in the reference.
+        // Tight vertical gap matching the supplied reference image.
         View controlGap = new View(this);
         mediaMirror.addView(mediaProgressRow,
                 new LinearLayout.LayoutParams(-1, dp(32)));
         mediaMirror.addView(controlGap,
-                new LinearLayout.LayoutParams(1, dp(48)));
+                new LinearLayout.LayoutParams(1, dp(30)));
 
         LinearLayout controls = new LinearLayout(this);
         controls.setOrientation(LinearLayout.HORIZONTAL);
@@ -380,7 +380,12 @@ public class MainActivity extends Activity {
         lastTitle = getString("lastTitle", lastTitle);
         lastArtist = getString("lastArtist", lastArtist);
 
-        e.putBoolean("frameEnabled", getBool("frameEnabled", false));
+        if (!getBool("referenceLayoutV2Applied", false)) {
+            e.putBoolean("frameEnabled", false);
+            e.putBoolean("referenceLayoutV2Applied", true);
+        } else {
+            e.putBoolean("frameEnabled", getBool("frameEnabled", false));
+        }
         e.putInt("frameColor", getInt("frameColor", Color.WHITE));
         e.putInt("frameWidth", getInt("frameWidth", 1));
         e.putInt("frameRadius", getInt("frameRadius", 10));
@@ -1057,6 +1062,7 @@ public class MainActivity extends Activity {
             prefs.edit().putString("lastTitle", lastTitle).putString("lastArtist", lastArtist).apply();
             long duration = metadata == null ? 0L : metadata.getLong(MediaMetadata.METADATA_KEY_DURATION);
             long position = Math.max(0L, state.getPosition());
+            if (duration > 0) position = Math.min(position, duration);
             mediaDetails.setText(lastArtist);
             mediaDetails.setVisibility(getBool("showDetails", false) && !lastArtist.isEmpty() ? View.VISIBLE : View.GONE);
             boolean showProgress = getBool("showProgress", false) && duration > 0;
@@ -1296,58 +1302,63 @@ public class MainActivity extends Activity {
             super.onDraw(canvas);
             float cx = getWidth() * 0.5f;
             float cy = getHeight() * 0.5f;
-            float unit = Math.min(getWidth(), getHeight());
+            float u = Math.min(getWidth(), getHeight());
 
             android.graphics.Paint p = new android.graphics.Paint(
                     android.graphics.Paint.ANTI_ALIAS_FLAG);
             p.setColor(Color.WHITE);
             p.setStyle(android.graphics.Paint.Style.FILL);
 
+            float h = u * 0.58f;
+            float barW = u * 0.075f;
+            float triW = u * 0.27f;
+            float gap = u * 0.035f;
+
             if (kind == PREVIOUS) {
-                float barX = cx - unit * 0.15f;
-                float barW = unit * 0.075f;
-                float h = unit * 0.58f;
-                canvas.drawRect(barX, cy - h / 2f, barX + barW, cy + h / 2f, p);
+                // ◀| : triangle points left, vertical bar is on the right.
+                float barLeft = cx + gap;
+                canvas.drawRect(barLeft, cy - h / 2f,
+                        barLeft + barW, cy + h / 2f, p);
 
                 android.graphics.Path tri = new android.graphics.Path();
-                float left = cx - unit * 0.27f;
-                float right = cx - unit * 0.02f;
-                tri.moveTo(right, cy - h / 2f);
-                tri.lineTo(left, cy);
-                tri.lineTo(right, cy + h / 2f);
+                float pointX = cx - gap - triW;
+                float baseX = cx - gap;
+                tri.moveTo(pointX, cy);
+                tri.lineTo(baseX, cy - h / 2f);
+                tri.lineTo(baseX, cy + h / 2f);
                 tri.close();
                 canvas.drawPath(tri, p);
             } else if (kind == NEXT) {
-                float barX = cx + unit * 0.075f;
-                float barW = unit * 0.075f;
-                float h = unit * 0.58f;
-                canvas.drawRect(barX, cy - h / 2f, barX + barW, cy + h / 2f, p);
+                // |▶ : vertical bar is on the left, triangle points right.
+                float barLeft = cx - gap - barW;
+                canvas.drawRect(barLeft, cy - h / 2f,
+                        barLeft + barW, cy + h / 2f, p);
 
                 android.graphics.Path tri = new android.graphics.Path();
-                float left = cx - unit * 0.02f;
-                float right = cx + unit * 0.27f;
-                tri.moveTo(left, cy - h / 2f);
-                tri.lineTo(right, cy);
-                tri.lineTo(left, cy + h / 2f);
+                float baseX = cx + gap;
+                float pointX = cx + gap + triW;
+                tri.moveTo(baseX, cy - h / 2f);
+                tri.lineTo(pointX, cy);
+                tri.lineTo(baseX, cy + h / 2f);
                 tri.close();
                 canvas.drawPath(tri, p);
             } else {
                 if (playing) {
-                    float h = unit * 0.62f;
-                    float barW = unit * 0.13f;
-                    float gap = unit * 0.11f;
-                    canvas.drawRect(cx - gap / 2f - barW, cy - h / 2f,
-                            cx - gap / 2f, cy + h / 2f, p);
-                    canvas.drawRect(cx + gap / 2f, cy - h / 2f,
-                            cx + gap / 2f + barW, cy + h / 2f, p);
+                    float ph = u * 0.62f;
+                    float pw = u * 0.13f;
+                    float pg = u * 0.11f;
+                    canvas.drawRect(cx - pg / 2f - pw, cy - ph / 2f,
+                            cx - pg / 2f, cy + ph / 2f, p);
+                    canvas.drawRect(cx + pg / 2f, cy - ph / 2f,
+                            cx + pg / 2f + pw, cy + ph / 2f, p);
                 } else {
                     android.graphics.Path tri = new android.graphics.Path();
-                    float left = cx - unit * 0.18f;
-                    float right = cx + unit * 0.22f;
-                    float h = unit * 0.58f;
-                    tri.moveTo(left, cy - h / 2f);
+                    float left = cx - u * 0.18f;
+                    float right = cx + u * 0.22f;
+                    float ph = u * 0.58f;
+                    tri.moveTo(left, cy - ph / 2f);
                     tri.lineTo(right, cy);
-                    tri.lineTo(left, cy + h / 2f);
+                    tri.lineTo(left, cy + ph / 2f);
                     tri.close();
                     canvas.drawPath(tri, p);
                 }
