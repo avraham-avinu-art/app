@@ -505,14 +505,14 @@ public class MainActivity extends Activity {
             scroll.setFillViewport(true);
             LinearLayout box = new LinearLayout(this);
             box.setOrientation(LinearLayout.VERTICAL);
-            box.setPadding(dp(12), dp(4), dp(12), dp(10));
+            box.setPadding(dp(9), dp(2), dp(9), dp(7));
             box.setBackgroundColor(Color.rgb(248, 249, 251));
             scroll.addView(box);
 
-            TextView h = textView("הגדרות", 24, Color.rgb(25, 28, 35));
+            TextView h = textView("הגדרות", 22, Color.rgb(25, 28, 35));
             h.setGravity(Gravity.CENTER);
             h.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
-            box.addView(h, new LinearLayout.LayoutParams(-1, dp(42)));
+            box.addView(h, new LinearLayout.LayoutParams(-1, dp(36)));
 
             addSection(box, "תצוגת שעון ותאריך");
             addSpinner(box, "גודל שעה ותאריך",
@@ -563,8 +563,8 @@ public class MainActivity extends Activity {
             doneBg.setColor(Color.rgb(55, 95, 145));
             doneBg.setCornerRadius(dp(14));
             done.setBackground(doneBg);
-            LinearLayout.LayoutParams doneParams = new LinearLayout.LayoutParams(-1, dp(44));
-            doneParams.topMargin = dp(12);
+            LinearLayout.LayoutParams doneParams = new LinearLayout.LayoutParams(-1, dp(40));
+            doneParams.topMargin = dp(7);
             box.addView(done, doneParams);
 
             AlertDialog dialog = new AlertDialog.Builder(this)
@@ -584,7 +584,7 @@ public class MainActivity extends Activity {
                 dialog.getWindow().setDimAmount(0.45f);
                 dialog.getWindow().setLayout(
                         Math.min(getResources().getDisplayMetrics().widthPixels - dp(24), dp(560)),
-                        Math.min(getResources().getDisplayMetrics().heightPixels - dp(24), dp(760)));
+                        Math.min(getResources().getDisplayMetrics().heightPixels - dp(18), dp(700)));
             }
         } catch (Throwable t) {
             showFatalError(t);
@@ -596,7 +596,7 @@ public class MainActivity extends Activity {
         v.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         v.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
         v.setPadding(dp(4), 0, dp(4), 0);
-        b.addView(v, new LinearLayout.LayoutParams(-1, dp(40)));
+        b.addView(v, new LinearLayout.LayoutParams(-1, dp(28)));
     }
 
     private void addCheck(LinearLayout b, String s, String k, boolean d) {
@@ -604,8 +604,11 @@ public class MainActivity extends Activity {
         x.setText(s);
         x.setTextColor(Color.rgb(35, 38, 45));
         x.setTextSize(15);
-        x.setPadding(dp(4), 0, dp(4), 0);
+        x.setPadding(dp(2), 0, dp(2), 0);
         x.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        if (Build.VERSION.SDK_INT >= 21) {
+            x.setButtonTintList(android.content.res.ColorStateList.valueOf(Color.rgb(55, 95, 145)));
+        }
         x.setChecked(getBool(k, d));
         x.setOnCheckedChangeListener((a, z) -> {
             try {
@@ -614,7 +617,7 @@ public class MainActivity extends Activity {
             } catch (Throwable ignored) {
             }
         });
-        b.addView(x, new LinearLayout.LayoutParams(-1, dp(48)));
+        b.addView(x, new LinearLayout.LayoutParams(-1, dp(38)));
     }
 
     private void addSpinner(LinearLayout b, String label, String[] names,
@@ -624,11 +627,37 @@ public class MainActivity extends Activity {
 
         TextView l = textView(label, 15, Color.rgb(45, 48, 55));
         l.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
-        row.addView(l, new LinearLayout.LayoutParams(0, dp(48), 1f));
+        row.addView(l, new LinearLayout.LayoutParams(0, dp(38), 1f));
 
         Spinner sp = new Spinner(this);
-        sp.setAdapter(new ArrayAdapter<String>(
-                this, android.R.layout.simple_spinner_dropdown_item, names));
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(
+                this, android.R.layout.simple_spinner_item, names) {
+            @Override public View getView(int position, View convertView, android.view.ViewGroup parent) {
+                TextView v = (TextView) super.getView(position, convertView, parent);
+                v.setTextColor(Color.rgb(35, 38, 45));
+                v.setTextSize(14);
+                v.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+                v.setPadding(dp(8), 0, dp(8), 0);
+                return v;
+            }
+            @Override public View getDropDownView(int position, View convertView, android.view.ViewGroup parent) {
+                TextView v = new TextView(MainActivity.this);
+                v.setText(names[position]);
+                v.setTextColor(Color.rgb(35, 38, 45));
+                v.setTextSize(14);
+                v.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+                v.setPadding(dp(10), 0, dp(10), 0);
+                v.setBackgroundColor(Color.WHITE);
+                v.setMinHeight(dp(36));
+                return v;
+            }
+        };
+        sp.setAdapter(adapter);
+        GradientDrawable spinnerBg = new GradientDrawable();
+        spinnerBg.setColor(Color.WHITE);
+        spinnerBg.setCornerRadius(dp(8));
+        spinnerBg.setStroke(dp(1), Color.rgb(205, 209, 216));
+        sp.setBackground(spinnerBg);
 
         int ix = 0;
         if (key.equals("fontColor") || key.equals("frameColor")) {
@@ -699,7 +728,7 @@ public class MainActivity extends Activity {
                     }
                 });
 
-        row.addView(sp, new LinearLayout.LayoutParams(dp(150), dp(42)));
+        row.addView(sp, new LinearLayout.LayoutParams(dp(150), dp(38)));
         b.addView(row);
     }
 
