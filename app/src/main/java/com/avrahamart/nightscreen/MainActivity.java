@@ -226,7 +226,7 @@ public class MainActivity extends Activity {
             FrameLayout.LayoutParams cp = (FrameLayout.LayoutParams) clockBlock.getLayoutParams();
             int clockH = clockBlock.getMeasuredHeight();
             if ("upper".equals(clockPos)) {
-                cp.topMargin = Math.max(0, Math.round(h * 0.33f - clockH / 2f));
+                cp.topMargin = Math.max(0, Math.round(h * 0.25f - clockH / 2f));
             } else if ("middle".equals(clockPos)) {
                 cp.topMargin = Math.max(0, Math.round(h * 0.50f - clockH / 2f));
             } else {
@@ -236,13 +236,7 @@ public class MainActivity extends Activity {
 
             FrameLayout.LayoutParams mp = (FrameLayout.LayoutParams) mediaHolder.getLayoutParams();
             int mediaH = mediaHolder.getMeasuredHeight();
-            if ("lower".equals(playerPos)) {
-                mp.topMargin = Math.max(0, Math.round(h * 0.67f - mediaH / 2f));
-            } else if ("middle".equals(playerPos)) {
-                mp.topMargin = Math.max(0, Math.round(h * 0.50f - mediaH / 2f));
-            } else {
-                mp.topMargin = Math.max(0, h - mediaH - dp(2));
-            }
+            mp.topMargin = Math.max(0, h - mediaH);
             mp.height = mediaH;
             mediaHolder.setLayoutParams(mp);
         } catch (Throwable ignored) {}
@@ -681,7 +675,7 @@ public class MainActivity extends Activity {
                     new String[]{"קטן","בינוני","גדול","גדול מאוד"},
                     new String[]{"38","48","60","72"}, "clockDateSize");
             addSpinner(box, "מיקום שעה ותאריך",
-                    new String[]{"הכי למעלה","בשליש העליון","באמצע המסך"},
+                    new String[]{"הכי למעלה","ברבע העליון","באמצע המסך"},
                     new String[]{"top","upper","middle"}, "clockDatePosition");
             addSpinner(box, "זמן פעילות השומר מסך",
                     new String[]{"ללא כיבוי","1 דקות","5 דקות"},
@@ -708,8 +702,8 @@ public class MainActivity extends Activity {
                     new String[]{"קטן","בינוני","גדול","גדול מאוד"},
                     new String[]{"14","17","20","23"}, "playerSize");
             addSpinner(box, "מיקום הנגן",
-                    new String[]{"הכי למטה","בשליש התחתון","באמצע המסך"},
-                    new String[]{"bottom","lower","middle"}, "playerPosition");
+                    new String[]{"הכי למטה","בשליש התחתון"},
+                    new String[]{"bottom","lower"}, "playerPosition");
             addCheck(box, "פרטי אמן (כשקיים בלבד)", "showDetails", getBool("showDetails", true));
             addCheck(box, "שורת מיקום + זמן", "showProgress", true);
 
@@ -862,7 +856,7 @@ public class MainActivity extends Activity {
             }
         }
 
-        sp.setSelection(ix);
+        sp.setSelection(ix, false);
         sp.setOnItemSelectedListener(
                 new android.widget.AdapterView.OnItemSelectedListener() {
                     @Override public void onItemSelected(
@@ -887,6 +881,7 @@ public class MainActivity extends Activity {
 
                             e.commit();
                             applySettings();
+                            handler.post(this::refreshSystemMediaMirror);
                         } catch (Throwable ignored) {
                         }
                     }
