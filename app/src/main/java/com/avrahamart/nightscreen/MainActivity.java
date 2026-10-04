@@ -932,9 +932,10 @@ public class MainActivity extends Activity {
             title = removeFileExtension(title);
             mediaTitle.setText(title);
             stopTitleMarquee();
+            final String marqueeTitle = title;
             mediaTitle.post(() -> {
                 try {
-                    float textWidth = mediaTitle.getPaint().measureText(title);
+                    float textWidth = mediaTitle.getPaint().measureText(marqueeTitle);
                     float available = Math.max(0, mediaTitle.getWidth() - mediaTitle.getPaddingLeft() - mediaTitle.getPaddingRight());
                     float threshold = mediaTitle.getPaint().measureText("XX");
                     float overflow = textWidth - available;
