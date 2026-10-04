@@ -57,7 +57,9 @@ public class MainActivity extends Activity {
     private TextView settingsButton;
     private TextView mediaDetails;
     private TextView mediaProgressText;
+    private SeekBar mediaSeekBar;
     private TextView lastMediaButton;
+    private MediaController lastKnownMediaController;
     private String lastTitle = "";
     private String lastArtist = "";
 
@@ -135,8 +137,8 @@ public class MainActivity extends Activity {
 
         LinearLayout top = new LinearLayout(this);
         top.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-        settingsButton = textView("☰", 20, Color.argb(245, 255, 255, 255));
-        settingsButton.setAlpha(0.98f);
+        settingsButton = textView("⋮", 28, Color.WHITE);
+        settingsButton.setAlpha(0.20f);
         settingsButton.setGravity(Gravity.CENTER);
         settingsButton.setContentDescription("הגדרות");
         settingsButton.setOnClickListener(v -> showSettings());
@@ -242,6 +244,8 @@ public class MainActivity extends Activity {
         mediaTitle.setEllipsize(android.text.TextUtils.TruncateAt.MARQUEE);
         mediaTitle.setMarqueeRepeatLimit(-1);
         mediaTitle.setSelected(true);
+        mediaTitle.setMarqueeRepeatLimit(-1);
+        mediaTitle.setHorizontallyScrolling(true);
         mediaTitle.setGravity(Gravity.CENTER);
         mediaTitle.setHorizontallyScrolling(true);
         mediaMirror.addView(mediaTitle, new LinearLayout.LayoutParams(
@@ -259,14 +263,37 @@ public class MainActivity extends Activity {
         mediaProgressText.setVisibility(View.GONE);
         mediaMirror.addView(mediaProgressText, new LinearLayout.LayoutParams(-1, dp(20)));
 
-        // Row 2: clearly visible, bold controls.
+        mediaSeekBar = new SeekBar(this);
+        mediaSeekBar.setVisibility(View.GONE);
+        mediaSeekBar.setPadding(dp(4), 0, dp(4), 0);
+        mediaSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser && mediaController != null) {
+                    PlaybackState st = mediaController.getPlaybackState();
+                    if (st != null) {
+                        long duration = st.getState() == PlaybackState.STATE_NONE ? 0L :
+                                (mediaController.getMetadata() == null ? 0L :
+                                mediaController.getMetadata().getLong(MediaMetadata.METADATA_KEY_DURATION));
+                        if (duration > 0) {
+                            mediaController.getTransportControls().seekTo(
+                                    (duration * progress) / 1000L);
+                        }
+                    }
+                }
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        mediaMirror.addView(mediaSeekBar, new LinearLayout.LayoutParams(-1, dp(20)));
+
+        // Row 2: clearly visible, modern, subtle controls.
         LinearLayout controls = new LinearLayout(this);
         controls.setOrientation(LinearLayout.HORIZONTAL);
         controls.setGravity(Gravity.CENTER);
         controls.setPadding(dp(8), 0, dp(8), 0);
 
-        mediaNext = mediaButton("▶");
-        mediaNext.setTextSize(25);
+        mediaNext = mediaButton("›");
+        mediaNext.setTextSize(30);
         mediaNext.setTypeface(Typeface.DEFAULT_BOLD);
         mediaNext.setTextColor(Color.WHITE);
         mediaNext.setBackground(makeMediaButtonBackground());
@@ -274,7 +301,7 @@ public class MainActivity extends Activity {
         controls.addView(mediaNext, buttonParams());
 
         mediaPlayPause = mediaButton("▶");
-        mediaPlayPause.setTextSize(22);
+        mediaPlayPause.setTextSize(20);
         mediaPlayPause.setTypeface(Typeface.DEFAULT_BOLD);
         mediaPlayPause.setTextColor(Color.WHITE);
         mediaPlayPause.setBackground(makeMediaButtonBackground());
@@ -284,8 +311,8 @@ public class MainActivity extends Activity {
         playParams.rightMargin = dp(8);
         controls.addView(mediaPlayPause, playParams);
 
-        mediaPrev = mediaButton("◀");
-        mediaPrev.setTextSize(25);
+        mediaPrev = mediaButton("‹");
+        mediaPrev.setTextSize(30);
         mediaPrev.setTypeface(Typeface.DEFAULT_BOLD);
         mediaPrev.setTextColor(Color.WHITE);
         mediaPrev.setBackground(makeMediaButtonBackground());
@@ -342,6 +369,8 @@ public class MainActivity extends Activity {
 
         e.putInt("fontColor", getInt("fontColor", dateTextColor));
         e.putInt("fontSize", getInt("fontSize", 17));
+        e.putInt("clockDateSize", getInt("clockDateSize", 48));
+        e.putInt("playerSize", getInt("playerSize", 17));
         e.putInt("fontWeight", getInt("fontWeight", 1));
         e.putString("fontFamily", getString("fontFamily", "sans-serif"));
 
@@ -405,6 +434,8 @@ public class MainActivity extends Activity {
 
         int color = getInt("fontColor", dateTextColor);
         int size = getInt("fontSize", 17);
+        int clockDateSize = getInt("clockDateSize", 48);
+        int playerSize = getInt("playerSize", 17);
         int weight = getInt("fontWeight", 1);
         Typeface tf = Typeface.create(
                 getString("fontFamily", "sans-serif"),
@@ -418,8 +449,9 @@ public class MainActivity extends Activity {
         gregorianText.setTextColor(color);
         hebrewText.setTextColor(color);
         timeText.setTextColor(color);
-        gregorianText.setTextSize(size);
-        hebrewText.setTextSize(size);
+        gregorianText.setTextSize(Math.max(12, clockDateSize * 0.42f));
+        hebrewText.setTextSize(Math.max(12, clockDateSize * 0.42f));
+        timeText.setTextSize(clockDateSize);
         gregorianText.setTypeface(tf);
         hebrewText.setTypeface(tf);
         timeText.setTypeface(tf);
@@ -428,8 +460,14 @@ public class MainActivity extends Activity {
             mediaTitle.setTypeface(tf);
             mediaDetails.setTypeface(tf);
             mediaProgressText.setTypeface(tf);
-            mediaTitle.setTextSize(size);
+            mediaTitle.setTextSize(playerSize);
+            mediaDetails.setTextSize(Math.max(11, playerSize - 3));
+            mediaProgressText.setTextSize(Math.max(10, playerSize - 4));
             mediaTitle.setTextColor(color);
+            mediaDetails.setTextColor(color);
+            mediaProgressText.setTextColor(color);
+            mediaSeekBar.setProgressTintList(android.content.res.ColorStateList.valueOf(color));
+            mediaSeekBar.setThumbTintList(android.content.res.ColorStateList.valueOf(color));
 
             if (getBool("frameEnabled", false)) {
                 GradientDrawable bg = new GradientDrawable();
@@ -454,23 +492,27 @@ public class MainActivity extends Activity {
             if (prefs == null) initSettings();
 
             ScrollView scroll = new ScrollView(this);
+            scroll.setFillViewport(true);
             LinearLayout box = new LinearLayout(this);
             box.setOrientation(LinearLayout.VERTICAL);
-            box.setPadding(dp(14), dp(8), dp(14), dp(14));
-            box.setBackgroundColor(Color.BLACK);
+            box.setPadding(dp(18), dp(10), dp(18), dp(18));
+            box.setBackgroundColor(Color.rgb(248, 249, 251));
             scroll.addView(box);
 
-            TextView h = textView("הגדרות", 23, Color.WHITE);
+            TextView h = textView("הגדרות", 24, Color.rgb(25, 28, 35));
             h.setGravity(Gravity.CENTER);
-            box.addView(h, new LinearLayout.LayoutParams(-1, dp(46)));
+            h.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
+            box.addView(h, new LinearLayout.LayoutParams(-1, dp(54)));
+
+            addSection(box, "תצוגת שעון ותאריך");
+            addSpinner(box, "גודל שעה ותאריך",
+                    new String[]{"קטן","בינוני","גדול","גדול מאוד"},
+                    new String[]{"38","48","60","72"}, "clockDateSize");
 
             addSection(box, "גופן");
             addSpinner(box, "צבע",
-                    new String[]{"לבן","אפור בהיר","אפור","כחול בהיר"},
+                    new String[]{"לבן","אפור בהיר","אפור","כחול עדין"},
                     new String[]{"white","light","gray","blue"}, "fontColor");
-            addSpinner(box, "גודל",
-                    new String[]{"קטן","בינוני","גדול","גדול מאוד"},
-                    new String[]{"14","17","20","23"}, "fontSize");
             addSpinner(box, "עובי",
                     new String[]{"רגיל","בינוני","מודגש"},
                     new String[]{"0","1","2"}, "fontWeight");
@@ -483,16 +525,19 @@ public class MainActivity extends Activity {
             addCheck(box, "תאריך עברי", "showHebrew", true);
             addCheck(box, "נגן", "showPlayer", true);
 
-            addSection(box, "אפשרויות נגן");
+            addSection(box, "נגן");
+            addSpinner(box, "גודל נגן",
+                    new String[]{"קטן","בינוני","גדול","גדול מאוד"},
+                    new String[]{"14","17","20","23"}, "playerSize");
             addCheck(box, "פרטים נוספים על השיר", "showDetails", false);
-            addCheck(box, "שורת מיקום + זמן נוכחי / זמן כולל", "showProgress", false);
+            addCheck(box, "שורת מיקום + זמן", "showProgress", false);
             addCheck(box, "לחצן השמעה אחרונה כשאין שיר פעיל", "showLastMedia", false);
 
             addSection(box, "מסגרת נגן");
             addCheck(box, "הצג מסגרת", "frameEnabled", false);
             addSpinner(box, "צבע מסגרת",
-                    new String[]{"לבן","אפור","כחול","זהב"},
-                    new String[]{"white","gray","blue","gold"}, "frameColor");
+                    new String[]{"אפור כחול","כסוף","סגול עדין","זהב עדין"},
+                    new String[]{"slate","silver","purple","gold"}, "frameColor");
             addSpinner(box, "עובי מסגרת",
                     new String[]{"דקה","בינונית","עבה"},
                     new String[]{"1","2","3"}, "frameWidth");
@@ -502,7 +547,15 @@ public class MainActivity extends Activity {
 
             Button done = new Button(this);
             done.setText("סיום");
-            box.addView(done, new LinearLayout.LayoutParams(-1, dp(50)));
+            done.setTextColor(Color.WHITE);
+            done.setTextSize(15);
+            GradientDrawable doneBg = new GradientDrawable();
+            doneBg.setColor(Color.rgb(55, 95, 145));
+            doneBg.setCornerRadius(dp(14));
+            done.setBackground(doneBg);
+            LinearLayout.LayoutParams doneParams = new LinearLayout.LayoutParams(-1, dp(50));
+            doneParams.topMargin = dp(12);
+            box.addView(done, doneParams);
 
             AlertDialog dialog = new AlertDialog.Builder(this)
                     .setView(scroll)
@@ -517,10 +570,11 @@ public class MainActivity extends Activity {
             dialog.show();
 
             if (dialog.getWindow() != null) {
-                dialog.getWindow().setBackgroundDrawableResource(android.R.color.black);
+                dialog.getWindow().setBackgroundDrawableResource(android.R.color.white);
+                dialog.getWindow().setDimAmount(0.45f);
                 dialog.getWindow().setLayout(
-                        Math.min(getResources().getDisplayMetrics().widthPixels - dp(16), dp(520)),
-                        Math.min(getResources().getDisplayMetrics().heightPixels - dp(20), dp(700)));
+                        Math.min(getResources().getDisplayMetrics().widthPixels - dp(24), dp(560)),
+                        Math.min(getResources().getDisplayMetrics().heightPixels - dp(24), dp(760)));
             }
         } catch (Throwable t) {
             showFatalError(t);
@@ -528,16 +582,19 @@ public class MainActivity extends Activity {
     }
 
     private void addSection(LinearLayout b, String s) {
-        TextView v = textView(s, 16, Color.rgb(170,170,170));
-        v.setGravity(Gravity.RIGHT);
+        TextView v = textView(s, 15, Color.rgb(65, 92, 125));
+        v.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+        v.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
+        v.setPadding(dp(4), 0, dp(4), 0);
         b.addView(v, new LinearLayout.LayoutParams(-1, dp(40)));
     }
 
     private void addCheck(LinearLayout b, String s, String k, boolean d) {
         CheckBox x = new CheckBox(this);
         x.setText(s);
-        x.setTextColor(Color.WHITE);
+        x.setTextColor(Color.rgb(35, 38, 45));
         x.setTextSize(15);
+        x.setPadding(dp(4), 0, dp(4), 0);
         x.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         x.setChecked(getBool(k, d));
         x.setOnCheckedChangeListener((a, z) -> {
@@ -555,8 +612,8 @@ public class MainActivity extends Activity {
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
 
-        TextView l = textView(label, 15, Color.WHITE);
-        l.setGravity(Gravity.RIGHT);
+        TextView l = textView(label, 15, Color.rgb(45, 48, 55));
+        l.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         row.addView(l, new LinearLayout.LayoutParams(0, dp(48), 1f));
 
         Spinner sp = new Spinner(this);
@@ -576,6 +633,7 @@ public class MainActivity extends Activity {
                 }
             }
         } else if (key.equals("fontSize") || key.equals("fontWeight")
+                || key.equals("clockDateSize") || key.equals("playerSize")
                 || key.equals("frameWidth") || key.equals("frameRadius")) {
             int stored = getInt(key, Integer.parseInt(vals[0]));
             for (int i = 0; i < vals.length; i++) {
@@ -611,6 +669,8 @@ public class MainActivity extends Activity {
                                 e.putInt(key, colorValue(val));
                             } else if (key.equals("fontSize")
                                     || key.equals("fontWeight")
+                                    || key.equals("clockDateSize")
+                                    || key.equals("playerSize")
                                     || key.equals("frameWidth")
                                     || key.equals("frameRadius")) {
                                 e.putInt(key, Integer.parseInt(val));
@@ -637,16 +697,20 @@ public class MainActivity extends Activity {
         if ("white".equals(value)) return Color.WHITE;
         if ("light".equals(value)) return Color.rgb(220,220,220);
         if ("gray".equals(value)) return Color.GRAY;
-        if ("blue".equals(value)) return Color.rgb(80,160,255);
-        if ("gold".equals(value)) return Color.rgb(220,180,70);
+        if ("blue".equals(value)) return Color.rgb(120,165,205);
+        if ("slate".equals(value)) return Color.rgb(100,125,150);
+        if ("silver".equals(value)) return Color.rgb(155,165,175);
+        if ("purple".equals(value)) return Color.rgb(145,130,165);
+        if ("gold".equals(value)) return Color.rgb(190,165,105);
         return Color.WHITE;
     }
 
     private void playLastMedia() {
         try {
-            if (mediaController == null) return;
+            MediaController controller = mediaController != null ? mediaController : lastKnownMediaController;
+            if (controller == null) return;
             MediaController.TransportControls controls =
-                    mediaController.getTransportControls();
+                    controller.getTransportControls();
             if (controls != null) {
                 controls.play();
                 if (lastMediaButton != null) lastMediaButton.setVisibility(View.GONE);
@@ -738,7 +802,6 @@ public class MainActivity extends Activity {
             }
 
             if (selected == null) {
-                detachMediaController();
                 hideMediaMirror();
                 if (getBool("showLastMedia", false) && !lastTitle.isEmpty()) {
                     mediaMirror.setVisibility(View.VISIBLE);
@@ -746,6 +809,7 @@ public class MainActivity extends Activity {
                     mediaDetails.setText(lastArtist);
                     mediaDetails.setVisibility(getBool("showDetails", false) ? View.VISIBLE : View.GONE);
                     mediaProgressText.setVisibility(View.GONE);
+                    mediaSeekBar.setVisibility(View.GONE);
                     mediaNext.setVisibility(View.GONE);
                     mediaPrev.setVisibility(View.GONE);
                     mediaPlayPause.setVisibility(View.GONE);
@@ -755,6 +819,7 @@ public class MainActivity extends Activity {
                 return;
             }
 
+            lastKnownMediaController = selected;
             if (mediaController == null ||
                     !mediaController.getSessionToken().equals(selected.getSessionToken())) {
                 attachMediaController(selected);
@@ -806,6 +871,7 @@ public class MainActivity extends Activity {
 
             @Override public void onSessionDestroyed() {
                 runOnUiThread(() -> {
+                    lastKnownMediaController = mediaController;
                     detachMediaController();
                     hideMediaMirror();
                 });
@@ -860,6 +926,23 @@ public class MainActivity extends Activity {
 
             title = removeFileExtension(title);
             mediaTitle.setText(title);
+            mediaTitle.setSelected(false);
+            mediaTitle.post(() -> {
+                try {
+                    float textWidth = mediaTitle.getPaint().measureText(title);
+                    float available = Math.max(0, mediaTitle.getWidth() - mediaTitle.getPaddingLeft() - mediaTitle.getPaddingRight());
+                    if (textWidth > available + mediaTitle.getPaint().measureText("XX")) {
+                        mediaTitle.setSelected(true);
+                        mediaTitle.setEllipsize(TextUtils.TruncateAt.MARQUEE);
+                        mediaTitle.setMarqueeRepeatLimit(-1);
+                        mediaTitle.setHorizontallyScrolling(true);
+                        mediaTitle.setSelected(true);
+                    } else {
+                        mediaTitle.setEllipsize(TextUtils.TruncateAt.END);
+                        mediaTitle.setSelected(false);
+                    }
+                } catch (Throwable ignored) {}
+            });
             lastTitle = title;
             String artist = metadata == null ? "" : metadata.getString(MediaMetadata.METADATA_KEY_ARTIST);
             lastArtist = artist == null ? "" : artist;
@@ -867,8 +950,15 @@ public class MainActivity extends Activity {
             long position = Math.max(0L, state.getPosition());
             mediaDetails.setText(lastArtist);
             mediaDetails.setVisibility(getBool("showDetails", false) ? View.VISIBLE : View.GONE);
-            mediaProgressText.setVisibility(getBool("showProgress", false) && duration > 0 ? View.VISIBLE : View.GONE);
-            if (duration > 0) mediaProgressText.setText(formatMs(position) + " / " + formatMs(duration));
+            boolean showProgress = getBool("showProgress", false) && duration > 0;
+            mediaProgressText.setVisibility(showProgress ? View.VISIBLE : View.GONE);
+            mediaSeekBar.setVisibility(showProgress ? View.VISIBLE : View.GONE);
+            if (duration > 0) {
+                // Total time first, current time second.
+                mediaProgressText.setText(formatMs(duration) + "  /  " + formatMs(position));
+                mediaSeekBar.setMax(1000);
+                mediaSeekBar.setProgress((int)Math.min(1000L, (position * 1000L) / duration));
+            }
             mediaPlayPause.setVisibility(View.VISIBLE);
             lastMediaButton.setVisibility(View.GONE);
             mediaPlayPause.setText(
