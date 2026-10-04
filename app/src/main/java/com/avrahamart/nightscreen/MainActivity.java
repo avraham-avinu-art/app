@@ -38,6 +38,8 @@ import android.widget.SeekBar;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.appcompat.widget.SwitchCompat;
+
 import com.kosherjava.zmanim.hebrewcalendar.HebrewDateFormatter;
 import com.kosherjava.zmanim.hebrewcalendar.JewishDate;
 
@@ -61,6 +63,7 @@ public class MainActivity extends Activity {
     private final int dateTextColor = Color.rgb(220, 220, 220);
     private SharedPreferences prefs;
     private TextView settingsButton;
+    private LinearLayout currentSettingsCard;
     private FrameLayout stageView;
     private LinearLayout clockBlockView;
     private LinearLayout mediaHolderView;
@@ -784,33 +787,52 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void addSection(LinearLayout b, String s) {
-        TextView v = textView(s, 16, Color.rgb(65, 92, 125));
+    private void addSection(LinearLayout b, String title) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(10), dp(6), dp(10), dp(6));
+
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.WHITE);
+        bg.setCornerRadius(dp(14));
+        bg.setStroke(dp(1), Color.rgb(222, 226, 232));
+        card.setBackground(bg);
+        if (Build.VERSION.SDK_INT >= 21) card.setElevation(dp(2));
+
+        LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(
+                -1, LinearLayout.LayoutParams.WRAP_CONTENT);
+        cp.bottomMargin = dp(10);
+        b.addView(card, cp);
+
+        TextView v = textView(title, 17, Color.rgb(55, 82, 112));
         v.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         v.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
         v.setPadding(dp(4), 0, dp(4), 0);
-        b.addView(v, new LinearLayout.LayoutParams(-1, dp(26)));
+        card.addView(v, new LinearLayout.LayoutParams(-1, dp(34)));
+        currentSettingsCard = card;
+    }
+
+    private LinearLayout settingsTarget(LinearLayout fallback) {
+        return currentSettingsCard != null ? currentSettingsCard : fallback;
     }
 
     private void addCheck(LinearLayout b, String s, String k, boolean d) {
-        CheckBox x = new CheckBox(this);
+        SwitchCompat x = new SwitchCompat(this);
         x.setText(s);
         x.setTextColor(Color.rgb(35, 38, 45));
         x.setTextSize(15);
+        x.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         x.setPadding(dp(2), 0, dp(2), 0);
         x.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        if (Build.VERSION.SDK_INT >= 21) {
-            x.setButtonTintList(android.content.res.ColorStateList.valueOf(Color.rgb(55, 95, 145)));
-        }
+        x.setShowText(false);
         x.setChecked(getBool(k, d));
         x.setOnCheckedChangeListener((a, z) -> {
             try {
                 prefs.edit().putBoolean(k, z).commit();
                 applySettings();
-            } catch (Throwable ignored) {
-            }
+            } catch (Throwable ignored) {}
         });
-        b.addView(x, new LinearLayout.LayoutParams(-1, dp(32)));
+        settingsTarget(b).addView(x, new LinearLayout.LayoutParams(-1, dp(42)));
     }
 
     private void addSpinner(LinearLayout b, String label, String[] names,
@@ -887,6 +909,7 @@ public class MainActivity extends Activity {
             }
         }
 
+        LinearLayout target = settingsTarget(b);
         sp.setSelection(ix, false);
         sp.setOnItemSelectedListener(
                 new android.widget.AdapterView.OnItemSelectedListener() {
@@ -922,684 +945,3 @@ public class MainActivity extends Activity {
                     }
                 });
 
-        row.addView(sp, new LinearLayout.LayoutParams(dp(150), dp(34)));
-        b.addView(row);
-    }
-
-    private int colorValue(String value) {
-        if ("white".equals(value)) return Color.WHITE;
-        if ("light".equals(value)) return Color.argb(102, 220, 220, 220);
-        if ("gray".equals(value)) return Color.GRAY;
-        if ("blue".equals(value)) return Color.rgb(120,165,205);
-        if ("slate".equals(value)) return Color.rgb(100,125,150);
-        if ("silver".equals(value)) return Color.rgb(155,165,175);
-        if ("purple".equals(value)) return Color.rgb(145,130,165);
-        if ("gold".equals(value)) return Color.rgb(190,165,105);
-        return Color.WHITE;
-    }
-
-    private MediaController selectPlayableSession(List<MediaController> sessions) {
-        if (sessions == null || sessions.isEmpty()) return null;
-
-        for (MediaController controller : sessions) {
-            try {
-                PlaybackState state = controller.getPlaybackState();
-                if (state != null &&
-                        (state.getState() == PlaybackState.STATE_PAUSED ||
-                         state.getState() == PlaybackState.STATE_PLAYING ||
-                         state.getState() == PlaybackState.STATE_BUFFERING)) {
-                    return controller;
-                }
-            } catch (Throwable ignored) {
-            }
-        }
-
-        return sessions.get(0);
-    }
-
-    private void updateClock() {
-        now.setTimeInMillis(System.currentTimeMillis());
-        timeText.setText(numericTime());
-        gregorianText.setText(hebrewWeekday() + " · " +
-                numericDateFormat.format(now.getTime()));
-
-        try {
-            JewishDate jewishDate = new JewishDate(now);
-            HebrewDateFormatter formatter = new HebrewDateFormatter();
-            formatter.setHebrewFormat(true);
-            formatter.setUseGershGershayim(true);
-            formatter.setUseLongHebrewYears(false);
-            hebrewText.setText(formatter.format(jewishDate));
-        } catch (Throwable t) {
-            hebrewText.setText("");
-        }
-    }
-
-    private String numericTime() {
-        return String.format(Locale.US, "%d:%02d",
-                now.get(Calendar.HOUR_OF_DAY),
-                now.get(Calendar.MINUTE));
-    }
-
-    private String hebrewWeekday() {
-        switch (now.get(Calendar.DAY_OF_WEEK)) {
-            case Calendar.SUNDAY: return "יום א";
-            case Calendar.MONDAY: return "יום ב";
-            case Calendar.TUESDAY: return "יום ג";
-            case Calendar.WEDNESDAY: return "יום ד";
-            case Calendar.THURSDAY: return "יום ה";
-            case Calendar.FRIDAY: return "יום ו";
-            default: return "יום שבת";
-        }
-    }
-
-    private void registerActiveSessionsListener() {
-        if (Build.VERSION.SDK_INT < 21) return;
-        try {
-            if (mediaSessionManager == null) {
-                mediaSessionManager = (MediaSessionManager)
-                        getSystemService(MEDIA_SESSION_SERVICE);
-            }
-            if (mediaSessionManager == null || activeSessionsListenerRegistered) return;
-
-            final ComponentName listenerComponent = new ComponentName(
-                    this, SystemMediaNotificationListener.class);
-            activeSessionsListener = controllers -> {
-                // A media session can be created after the screen saver starts.
-                // Refresh immediately instead of waiting for the next lifecycle event.
-                handler.post(this::refreshSystemMediaMirror);
-            };
-            mediaSessionManager.addOnActiveSessionsChangedListener(
-                    activeSessionsListener,
-                    listenerComponent,
-                    handler);
-            activeSessionsListenerRegistered = true;
-        } catch (SecurityException ignored) {
-            activeSessionsListener = null;
-            activeSessionsListenerRegistered = false;
-        } catch (Throwable ignored) {
-            activeSessionsListener = null;
-            activeSessionsListenerRegistered = false;
-        }
-    }
-
-    private void unregisterActiveSessionsListener() {
-        if (mediaSessionManager == null || activeSessionsListener == null || !activeSessionsListenerRegistered) {
-            activeSessionsListener = null;
-            activeSessionsListenerRegistered = false;
-            return;
-        }
-        try {
-            mediaSessionManager.removeOnActiveSessionsChangedListener(activeSessionsListener);
-        } catch (Throwable ignored) {
-        }
-        activeSessionsListener = null;
-        activeSessionsListenerRegistered = false;
-    }
-
-    private void refreshSystemMediaMirror() {
-        if (mediaMirror == null) return;
-
-        try {
-            if (!hasNotificationAccess()) {
-                detachMediaController();
-                hideMediaMirror();
-                showMediaSetup();
-                return;
-            }
-            hideMediaSetup();
-
-            if (mediaSessionManager == null) {
-                mediaSessionManager = (MediaSessionManager)
-                        getSystemService(MEDIA_SESSION_SERVICE);
-            }
-
-            if (mediaSessionManager == null) {
-                hideMediaMirror();
-                return;
-            }
-
-            ComponentName listener = new ComponentName(
-                    this, SystemMediaNotificationListener.class);
-
-            // Prefer the media-key session only when it is a real media session.
-            // Some Android versions keep a stale system session here with no title;
-            // in that case we must fall back to the complete active-session list.
-            MediaController selected = null;
-            if (Build.VERSION.SDK_INT >= 33) {
-                try {
-                    MediaSession.Token token = mediaSessionManager.getMediaKeyEventSession();
-                    if (token != null) {
-                        MediaController candidate = new MediaController(this, token);
-                        if (hasUsableMediaSession(candidate)) {
-                            selected = candidate;
-                        }
-                    }
-                } catch (Throwable ignored) {
-                }
-            }
-
-            // Always inspect active sessions when the preferred session is stale,
-            // so playback started after app launch is detected on the next refresh.
-            if (selected == null) {
-                List<MediaController> sessions =
-                        mediaSessionManager.getActiveSessions(listener);
-                selected = selectBestSession(sessions);
-            }
-
-            if (selected == null) {
-                hideMediaMirror();
-                return;
-            }
-
-            lastKnownMediaController = selected;
-            if (mediaController == null ||
-                    !mediaController.getSessionToken().equals(selected.getSessionToken())) {
-                attachMediaController(selected);
-            }
-
-            renderMediaMirror();
-        } catch (SecurityException ignored) {
-            detachMediaController();
-            hideMediaMirror();
-            showMediaSetup();
-        } catch (Throwable ignored) {
-            hideMediaMirror();
-        }
-    }
-
-    private boolean hasUsableMediaSession(MediaController controller) {
-        if (controller == null) return false;
-        try {
-            PlaybackState state = controller.getPlaybackState();
-            MediaMetadata metadata = controller.getMetadata();
-            if (state != null) {
-                int s = state.getState();
-                if (s == PlaybackState.STATE_PLAYING ||
-                        s == PlaybackState.STATE_BUFFERING ||
-                        s == PlaybackState.STATE_PAUSED) {
-                    return true;
-                }
-            }
-            if (metadata != null) {
-                String title = metadata.getString(MediaMetadata.METADATA_KEY_TITLE);
-                if (title == null || title.trim().isEmpty()) {
-                    title = metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE);
-                }
-                return title != null && !title.trim().isEmpty();
-            }
-        } catch (Throwable ignored) {
-        }
-        return false;
-    }
-
-    private MediaController selectBestSession(List<MediaController> sessions) {
-        if (sessions == null || sessions.isEmpty()) return null;
-
-        // Prefer playing/buffering, then paused, preserving Android's priority order.
-        for (MediaController controller : sessions) {
-            PlaybackState state = controller.getPlaybackState();
-            if (state == null) continue;
-            int s = state.getState();
-            if (s == PlaybackState.STATE_PLAYING ||
-                    s == PlaybackState.STATE_BUFFERING) {
-                return controller;
-            }
-        }
-        for (MediaController controller : sessions) {
-            PlaybackState state = controller.getPlaybackState();
-            if (state != null && state.getState() == PlaybackState.STATE_PAUSED) {
-                return controller;
-            }
-        }
-
-        // Some players create their MediaSession before playback starts.
-        // Keep the session if it already exposes a real title, so the mirror
-        // can appear when playback begins after the app was opened.
-        for (MediaController controller : sessions) {
-            try {
-                MediaMetadata metadata = controller.getMetadata();
-                String title = metadata == null ? null :
-                        metadata.getString(MediaMetadata.METADATA_KEY_TITLE);
-                if (title == null || title.trim().isEmpty()) {
-                    title = metadata == null ? null :
-                            metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE);
-                }
-                if (title != null && !title.trim().isEmpty()) return controller;
-            } catch (Throwable ignored) {}
-        }
-        return null;
-    }
-
-    private void attachMediaController(MediaController controller) {
-        detachMediaController();
-        mediaController = controller;
-        mediaCallback = new MediaController.Callback() {
-            @Override public void onPlaybackStateChanged(PlaybackState state) {
-                runOnUiThread(() -> renderMediaMirror());
-            }
-
-            @Override public void onMetadataChanged(MediaMetadata metadata) {
-                runOnUiThread(() -> renderMediaMirror());
-            }
-
-            @Override public void onSessionDestroyed() {
-                runOnUiThread(() -> {
-                    lastKnownMediaController = mediaController;
-                    detachMediaController();
-                    hideMediaMirror();
-                });
-            }
-        };
-
-        try {
-            mediaController.registerCallback(mediaCallback);
-        } catch (Throwable ignored) {
-        }
-    }
-
-    private void detachMediaController() {
-        if (mediaController != null && mediaCallback != null) {
-            try {
-                mediaController.unregisterCallback(mediaCallback);
-            } catch (Throwable ignored) {
-            }
-        }
-        mediaController = null;
-        mediaCallback = null;
-    }
-
-    private void renderMediaMirror() {
-        if (mediaMirror == null || mediaController == null) return;
-
-        try {
-            PlaybackState state = mediaController.getPlaybackState();
-            MediaMetadata metadata = mediaController.getMetadata();
-            if (state == null) {
-                hideMediaMirror();
-                return;
-            }
-
-            int playback = state.getState();
-            if (playback != PlaybackState.STATE_PLAYING &&
-                    playback != PlaybackState.STATE_BUFFERING &&
-                    playback != PlaybackState.STATE_PAUSED) {
-                hideMediaMirror();
-                return;
-            }
-
-            String title = metadata == null ? null :
-                    metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE);
-            if (title == null || title.trim().isEmpty()) {
-                title = metadata == null ? null :
-                        metadata.getString(MediaMetadata.METADATA_KEY_TITLE);
-            }
-            if (title == null || title.trim().isEmpty()) {
-                title = "מדיה";
-            }
-
-            title = removeFileExtension(title);
-            mediaTitle.setText(title);
-            mediaTitle.setVisibility(View.VISIBLE);
-            stopTitleMarquee();
-            mediaTitle.post(() -> updateTitleMarqueeIfNeeded());
-            lastTitle = title;
-            String artist = metadata == null ? "" : metadata.getString(MediaMetadata.METADATA_KEY_ARTIST);
-            artist = artist == null ? "" : artist.trim();
-            if (artist.equalsIgnoreCase("unknown artist") ||
-                    artist.equalsIgnoreCase("unknown") ||
-                    artist.equalsIgnoreCase("artist unknown") ||
-                    artist.equals("אמן לא ידוע") ||
-                    artist.equals("אמן לא ידוע/ה") ||
-                    artist.equals("לא ידוע")) {
-                artist = "";
-            }
-            lastArtist = artist;
-            prefs.edit().putString("lastTitle", lastTitle).putString("lastArtist", lastArtist).apply();
-            long duration = metadata == null ? 0L : metadata.getLong(MediaMetadata.METADATA_KEY_DURATION);
-            long position = Math.max(0L, state.getPosition());
-            if (duration > 0) position = Math.min(position, duration);
-            boolean showDetails = getBool("showDetails", true);
-            mediaDetails.setText(lastArtist);
-            mediaDetails.setVisibility(showDetails && !lastArtist.isEmpty() ? View.VISIBLE : View.INVISIBLE);
-            boolean showProgress = getBool("showProgress", false) && duration > 0;
-            mediaProgressRow.setVisibility(showProgress ? View.VISIBLE : View.GONE);
-            mediaSeekBar.setVisibility(showProgress ? View.VISIBLE : View.GONE);
-            mediaCurrentText.setVisibility(showProgress ? View.VISIBLE : View.GONE);
-            mediaTotalText.setVisibility(showProgress ? View.VISIBLE : View.GONE);
-            if (duration > 0) {
-                position = Math.max(0L, Math.min(position, duration));
-                mediaCurrentText.setText(formatMs(position));
-                mediaTotalText.setText(formatMs(duration));
-                mediaSeekBar.setMax(1000);
-                mediaSeekBar.setProgress((int)Math.min(1000L, (position * 1000L) / duration));
-            }
-            mediaPlayPause.setVisibility(View.VISIBLE);
-                boolean isPlaying = playback == PlaybackState.STATE_PLAYING;
-            mediaPlayPause.setImageResource(
-                    isPlaying ? R.drawable.media_pause : R.drawable.media_play);
-            mediaPlayPause.setContentDescription(isPlaying ? "השהה" : "נגן");
-            int mediaColor = getInt("fontColor", dateTextColor);
-            if (mediaPlayPause.getDrawable() != null) mediaPlayPause.getDrawable().setTint(mediaColor);
-
-            long actions = state.getActions();
-            mediaPrev.setVisibility(
-                    (actions & PlaybackState.ACTION_SKIP_TO_PREVIOUS) != 0
-                            ? View.VISIBLE : View.GONE);
-            mediaNext.setVisibility(
-                    (actions & PlaybackState.ACTION_SKIP_TO_NEXT) != 0
-                            ? View.VISIBLE : View.GONE);
-
-            mediaMirror.setVisibility(getBool("showPlayer", true) ? View.VISIBLE : View.GONE);
-            mediaMirror.requestLayout();
-            View parent = mediaMirror.getParent() instanceof View ? (View) mediaMirror.getParent() : null;
-            if (parent != null && parent.getParent() instanceof FrameLayout) {
-                FrameLayout stage = (FrameLayout) parent.getParent();
-                stage.post(() -> updateScreenPositions(stageView, clockBlockView, mediaHolderView));
-            }
-        } catch (Throwable ignored) {
-            hideMediaMirror();
-        }
-    }
-
-    private boolean hasNotificationAccess() {
-        ComponentName component = new ComponentName(
-                this, SystemMediaNotificationListener.class);
-        try {
-            if (Build.VERSION.SDK_INT >= 27) {
-                NotificationManager manager =
-                        (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-                return manager != null &&
-                        manager.isNotificationListenerAccessGranted(component);
-            }
-        } catch (Throwable ignored) {
-        }
-
-        try {
-            String enabled = Settings.Secure.getString(
-                    getContentResolver(), "enabled_notification_listeners");
-            return enabled != null && enabled.contains(component.flattenToString());
-        } catch (Throwable ignored) {
-            return false;
-        }
-    }
-
-    private void showMediaSetup() {
-        if (mediaSetup != null) mediaSetup.setVisibility(View.VISIBLE);
-    }
-
-    private void hideMediaSetup() {
-        if (mediaSetup != null) mediaSetup.setVisibility(View.GONE);
-    }
-
-    private void openNotificationAccessSettings() {
-        // Use the top-level Notification Access page for maximum OEM compatibility.
-        // Some devices crash when launched with the newer detail-page extra.
-        Intent intent = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
-        try {
-            startActivity(intent);
-        } catch (ActivityNotFoundException ignored) {
-        } catch (Throwable ignored) {
-        }
-    }
-
-    private void hideMediaMirror() {
-        if (mediaMirror != null) {
-            mediaMirror.setVisibility(View.GONE);
-        }
-    }
-
-    private String removeFileExtension(String title) {
-        if (title == null) return "";
-        String value = title.trim();
-        int slash = Math.max(value.lastIndexOf('/'), value.lastIndexOf('\\'));
-        int dot = value.lastIndexOf('.');
-        if (dot > slash + 0 && dot < value.length() - 1) {
-            return value.substring(0, dot);
-        }
-        return value;
-    }
-
-    private void updateTitleMarqueeIfNeeded() {
-        if (mediaTitle == null) return;
-        try {
-            String value = mediaTitle.getText() == null ? "" : mediaTitle.getText().toString();
-            float textWidth = mediaTitle.getPaint().measureText(value);
-            float available = Math.max(0,
-                    mediaTitle.getWidth() - mediaTitle.getPaddingLeft() - mediaTitle.getPaddingRight());
-
-            stopTitleMarquee();
-
-            if (!value.isEmpty() && textWidth > available + dp(2)) {
-                // The title fits normally when short. Only overflowing titles
-                // become horizontally scrollable.
-                mediaTitle.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
-                mediaTitle.setHorizontallyScrolling(true);
-                mediaTitle.setEllipsize(null);
-                mediaTitle.setSelected(false);
-
-                final int overflow = Math.max(1, (int)Math.ceil(textWidth - available));
-                mediaTitle.setScrollX(0);
-                titleMarqueeAnimator = ObjectAnimator.ofInt(
-                        mediaTitle, "scrollX", 0, overflow);
-                long duration = Math.max(8000L,
-                        Math.min(20000L, 7000L + overflow * 20L));
-                titleMarqueeAnimator.setDuration(duration);
-                titleMarqueeAnimator.setStartDelay(1200L);
-                titleMarqueeAnimator.setRepeatMode(ObjectAnimator.REVERSE);
-                titleMarqueeAnimator.setRepeatCount(ObjectAnimator.INFINITE);
-                titleMarqueeAnimator.setInterpolator(new android.view.animation.LinearInterpolator());
-                titleMarqueeAnimator.start();
-            } else {
-                mediaTitle.setGravity(Gravity.CENTER);
-                mediaTitle.setHorizontallyScrolling(false);
-                mediaTitle.setEllipsize(TextUtils.TruncateAt.END);
-                mediaTitle.setSelected(false);
-                mediaTitle.setScrollX(0);
-            }
-        } catch (Throwable ignored) {
-        }
-    }
-
-    private void stopTitleMarquee() {
-        try {
-            if (titleMarqueeAnimator != null) {
-                titleMarqueeAnimator.cancel();
-                titleMarqueeAnimator = null;
-            }
-        } catch (Throwable ignored) {
-        }
-        if (mediaTitle != null) {
-            mediaTitle.setScrollX(0);
-        }
-    }
-
-    private void sendPlayPause() {
-        try {
-            if (mediaController != null) {
-                PlaybackState state = mediaController.getPlaybackState();
-                if (state != null) {
-                    if (state.getState() == PlaybackState.STATE_PLAYING) {
-                        if ((state.getActions() & PlaybackState.ACTION_PAUSE) != 0) {
-                            mediaController.getTransportControls().pause();
-                            return;
-                        }
-                    } else {
-                        if ((state.getActions() & PlaybackState.ACTION_PLAY) != 0) {
-                            mediaController.getTransportControls().play();
-                            return;
-                        }
-                    }
-                }
-            }
-        } catch (Throwable ignored) {
-        }
-
-        // Some players expose media-key handling but not TransportControls.
-        try {
-            AudioManager audio = (AudioManager) getSystemService(AUDIO_SERVICE);
-            if (audio != null) {
-                long nowMs = System.currentTimeMillis();
-                audio.dispatchMediaKeyEvent(new KeyEvent(nowMs, nowMs,
-                        KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, 0));
-                audio.dispatchMediaKeyEvent(new KeyEvent(nowMs, nowMs,
-                        KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, 0));
-            }
-        } catch (Throwable ignored) {
-        }
-
-        if (mediaPlayPause != null) {
-            mediaPlayPause.postDelayed(this::renderMediaMirror, 180L);
-        }
-    }
-
-    private void sendPrevious() {
-        try {
-            if (mediaController != null) {
-                MediaController.TransportControls controls =
-                        mediaController.getTransportControls();
-                if (controls != null) {
-                    controls.skipToPrevious();
-                    handler.postDelayed(this::refreshSystemMediaMirror, 220L);
-                    return;
-                }
-            }
-        } catch (Throwable ignored) {}
-        dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS);
-    }
-
-    private void sendNext() {
-        try {
-            if (mediaController != null) {
-                MediaController.TransportControls controls =
-                        mediaController.getTransportControls();
-                if (controls != null) {
-                    controls.skipToNext();
-                    handler.postDelayed(this::refreshSystemMediaMirror, 220L);
-                    return;
-                }
-            }
-        } catch (Throwable ignored) {}
-        dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_NEXT);
-    }
-
-    private void dispatchMediaKey(int keyCode) {
-        try {
-            AudioManager audio = (AudioManager) getSystemService(AUDIO_SERVICE);
-            if (audio == null) return;
-            long nowMs = System.currentTimeMillis();
-            audio.dispatchMediaKeyEvent(new KeyEvent(nowMs, nowMs,
-                    KeyEvent.ACTION_DOWN, keyCode, 0));
-            audio.dispatchMediaKeyEvent(new KeyEvent(nowMs, nowMs,
-                    KeyEvent.ACTION_UP, keyCode, 0));
-            handler.postDelayed(this::refreshSystemMediaMirror, 250L);
-        } catch (Throwable ignored) {}
-    }
-
-    private TextView mediaButton(String symbol) {
-        TextView v = textView(symbol, 24, Color.WHITE);
-        v.setGravity(Gravity.CENTER);
-        v.setClickable(true);
-        v.setTypeface(Typeface.DEFAULT_BOLD);
-        return v;
-    }
-
-    private ImageView mediaIconButton(int drawableRes, String description) {
-        ImageView v = new ImageView(this);
-        v.setImageResource(drawableRes);
-        v.setScaleType(ImageView.ScaleType.CENTER);
-        v.setContentDescription(description);
-        v.setClickable(true);
-        v.setFocusable(true);
-        v.setBackgroundColor(Color.TRANSPARENT);
-        v.setPadding(0, 0, 0, 0);
-        v.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
-        return v;
-    }
-
-    private TextView textView(String text, float size, int color) {
-        TextView v = new TextView(this);
-        v.setText(text);
-        v.setTextSize(size);
-        v.setTextColor(color);
-        return v;
-    }
-
-    private LinearLayout.LayoutParams matchWrap() {
-        return new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT);
-    }
-
-    private int dp(int value) {
-        return Math.round(
-                value * getResources().getDisplayMetrics().density);
-    }
-
-    private void showSystemUiForSettings() {
-        try {
-            getWindow().clearFlags(
-                    android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN);
-
-            View decor = getWindow().getDecorView();
-            decor.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
-
-            if (Build.VERSION.SDK_INT >= 30) {
-                android.view.WindowInsetsController controller =
-                        decor.getWindowInsetsController();
-                if (controller != null) {
-                    controller.show(
-                            android.view.WindowInsets.Type.statusBars()
-                                    | android.view.WindowInsets.Type.navigationBars()
-                                    | android.view.WindowInsets.Type.captionBar());
-                    controller.setSystemBarsBehavior(
-                            android.view.WindowInsetsController.BEHAVIOR_DEFAULT);
-                }
-            }
-        } catch (Throwable ignored) {
-        }
-    }
-
-    private void hideSystemUi() {
-        View decor = getWindow().getDecorView();
-        decor.setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
-
-        if (android.os.Build.VERSION.SDK_INT >= 30) {
-            android.view.WindowInsetsController controller = decor.getWindowInsetsController();
-            if (controller != null) {
-                controller.hide(android.view.WindowInsets.Type.statusBars()
-                        | android.view.WindowInsets.Type.navigationBars()
-                        | android.view.WindowInsets.Type.captionBar());
-                controller.setSystemBarsBehavior(
-                        android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-            }
-        }
-    }
-
-    @Override
-    public void onWindowFocusChanged(boolean hasFocus) {
-        super.onWindowFocusChanged(hasFocus);
-        if (hasFocus) {
-            hideSystemUi();
-        }
-    }
-
-    private void showFatalError(Throwable t) {
-        try {
-            TextView error = textView(
-                    "שומר מסך\n" + t.getClass().getSimpleName(),
-                    22, Color.WHITE);
-            error.setGravity(Gravity.CENTER);
-            error.setBackgroundColor(Color.BLACK);
-            setContentView(error);
-        } catch (Throwable ignored) {
-            finish();
-        }
-    }
-}
