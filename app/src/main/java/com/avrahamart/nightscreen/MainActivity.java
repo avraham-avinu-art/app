@@ -642,6 +642,21 @@ public class MainActivity extends Activity {
         return Color.WHITE;
     }
 
+    private void playLastMedia() {
+        try {
+            if (mediaController == null) return;
+            MediaController.TransportControls controls =
+                    mediaController.getTransportControls();
+            if (controls != null) {
+                controls.play();
+                if (lastMediaButton != null) lastMediaButton.setVisibility(View.GONE);
+                if (mediaPlayPause != null) mediaPlayPause.setVisibility(View.VISIBLE);
+                renderMediaMirror();
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
     private void updateClock() {
         now.setTimeInMillis(System.currentTimeMillis());
         timeText.setText(numericTime());
