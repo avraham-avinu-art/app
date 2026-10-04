@@ -505,7 +505,8 @@ public class MainActivity extends Activity {
 
             boolean hasActiveSong = mediaController != null &&
                     mediaController.getMetadata() != null &&
-                    !safeString(mediaController.getMetadata().getString(MediaMetadata.METADATA_KEY_TITLE)).isEmpty();
+                    mediaController.getMetadata().getString(MediaMetadata.METADATA_KEY_TITLE) != null &&
+                    !mediaController.getMetadata().getString(MediaMetadata.METADATA_KEY_TITLE).trim().isEmpty();
             if (getBool("frameEnabled", false) && hasActiveSong) {
                 GradientDrawable bg = new GradientDrawable();
                 bg.setColor(Color.BLACK);
