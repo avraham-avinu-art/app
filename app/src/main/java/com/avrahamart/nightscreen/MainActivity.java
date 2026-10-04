@@ -140,19 +140,20 @@ public class MainActivity extends Activity {
 
         LinearLayout top = new LinearLayout(this);
         top.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-        settingsButton = textView("⋮", 28, Color.WHITE);
+        settingsButton = textView("⋮", 22, Color.WHITE);
         settingsButton.setAlpha(0.20f);
         settingsButton.setGravity(Gravity.CENTER);
         settingsButton.setContentDescription("הגדרות");
         settingsButton.setOnClickListener(v -> showSettings());
-        top.addView(settingsButton, new LinearLayout.LayoutParams(dp(42), dp(34)));
+        LinearLayout.LayoutParams settingsParams = new LinearLayout.LayoutParams(dp(30), dp(34));
+        settingsParams.rightMargin = -dp(4);
+        top.addView(settingsButton, settingsParams);
         root.addView(top, new LinearLayout.LayoutParams(-1, dp(34)));
 
         timeText = textView("--:--", 82, Color.rgb(247, 247, 247));
         timeText.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
         timeText.setGravity(Gravity.CENTER);
-        timeText.setAutoSizeTextTypeUniformWithConfiguration(
-                dp(48), dp(82), dp(1), android.util.TypedValue.COMPLEX_UNIT_PX);
+        
         LinearLayout.LayoutParams timeParams = matchWrap();
         timeParams.topMargin = dp(18);
         root.addView(timeText, timeParams);
@@ -161,8 +162,7 @@ public class MainActivity extends Activity {
         gregorianText.setTypeface(
                 Typeface.create("sans-serif-medium", Typeface.NORMAL));
         gregorianText.setGravity(Gravity.CENTER);
-        gregorianText.setAutoSizeTextTypeUniformWithConfiguration(
-                dp(14), dp(22), dp(1), android.util.TypedValue.COMPLEX_UNIT_PX);
+        
         LinearLayout.LayoutParams gregParams = matchWrap();
         gregParams.topMargin = dp(4);
         root.addView(gregorianText, gregParams);
@@ -173,8 +173,7 @@ public class MainActivity extends Activity {
         hebrewText.setGravity(Gravity.CENTER);
         hebrewText.setTextDirection(View.TEXT_DIRECTION_ANY_RTL);
         hebrewText.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-        hebrewText.setAutoSizeTextTypeUniformWithConfiguration(
-                dp(14), dp(22), dp(1), android.util.TypedValue.COMPLEX_UNIT_PX);
+        
         LinearLayout.LayoutParams hebParams = matchWrap();
         hebParams.topMargin = dp(3);
         root.addView(hebrewText, hebParams);
@@ -246,8 +245,7 @@ public class MainActivity extends Activity {
         mediaTitle.setSingleLine(true);
         mediaTitle.setEllipsize(android.text.TextUtils.TruncateAt.MARQUEE);
         mediaTitle.setMarqueeRepeatLimit(-1);
-        mediaTitle.setSelected(true);
-        mediaTitle.setMarqueeRepeatLimit(-1);
+        mediaTitle.setSelected(false);
         mediaTitle.setHorizontallyScrolling(true);
         mediaTitle.setGravity(Gravity.CENTER);
         mediaTitle.setHorizontallyScrolling(true);
@@ -269,6 +267,7 @@ public class MainActivity extends Activity {
         mediaSeekBar = new SeekBar(this);
         mediaSeekBar.setVisibility(View.GONE);
         mediaSeekBar.setPadding(dp(4), 0, dp(4), 0);
+        mediaSeekBar.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         mediaSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser && mediaController != null) {
@@ -345,9 +344,9 @@ public class MainActivity extends Activity {
     private android.graphics.drawable.Drawable makeMediaButtonBackground() {
         android.graphics.drawable.GradientDrawable bg =
                 new android.graphics.drawable.GradientDrawable();
-        bg.setColor(getInt("buttonColor", Color.rgb(45,45,45)));
-        bg.setCornerRadius(dp(16));
-        bg.setStroke(dp(1), getInt("buttonBorderColor", Color.rgb(110,110,110)));
+        bg.setColor(Color.argb(180, 45,45,45));
+        bg.setCornerRadius(dp(23));
+        bg.setStroke(dp(1), Color.argb(90,255,255,255));
         return bg;
     }
 
@@ -454,8 +453,8 @@ public class MainActivity extends Activity {
         gregorianText.setTextColor(color);
         hebrewText.setTextColor(color);
         timeText.setTextColor(color);
-        gregorianText.setTextSize(Math.max(12, clockDateSize * 0.42f));
-        hebrewText.setTextSize(Math.max(12, clockDateSize * 0.42f));
+        gregorianText.setTextSize(Math.max(14, clockDateSize * 0.30f));
+        hebrewText.setTextSize(Math.max(14, clockDateSize * 0.30f));
         timeText.setTextSize(clockDateSize);
         gregorianText.setTypeface(tf);
         hebrewText.setTypeface(tf);
@@ -500,14 +499,14 @@ public class MainActivity extends Activity {
             scroll.setFillViewport(true);
             LinearLayout box = new LinearLayout(this);
             box.setOrientation(LinearLayout.VERTICAL);
-            box.setPadding(dp(18), dp(10), dp(18), dp(18));
+            box.setPadding(dp(12), dp(4), dp(12), dp(10));
             box.setBackgroundColor(Color.rgb(248, 249, 251));
             scroll.addView(box);
 
             TextView h = textView("הגדרות", 24, Color.rgb(25, 28, 35));
             h.setGravity(Gravity.CENTER);
             h.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
-            box.addView(h, new LinearLayout.LayoutParams(-1, dp(54)));
+            box.addView(h, new LinearLayout.LayoutParams(-1, dp(42)));
 
             addSection(box, "תצוגת שעון ותאריך");
             addSpinner(box, "גודל שעה ותאריך",
@@ -534,7 +533,7 @@ public class MainActivity extends Activity {
             addSpinner(box, "גודל נגן",
                     new String[]{"קטן","בינוני","גדול","גדול מאוד"},
                     new String[]{"14","17","20","23"}, "playerSize");
-            addCheck(box, "פרטים נוספים על השיר", "showDetails", false);
+            addCheck(box, "פרטי אמן (כשקיים בלבד)", "showDetails", false);
             addCheck(box, "שורת מיקום + זמן", "showProgress", false);
             addCheck(box, "לחצן השמעה אחרונה כשאין שיר פעיל", "showLastMedia", false);
 
@@ -558,7 +557,7 @@ public class MainActivity extends Activity {
             doneBg.setColor(Color.rgb(55, 95, 145));
             doneBg.setCornerRadius(dp(14));
             done.setBackground(doneBg);
-            LinearLayout.LayoutParams doneParams = new LinearLayout.LayoutParams(-1, dp(50));
+            LinearLayout.LayoutParams doneParams = new LinearLayout.LayoutParams(-1, dp(44));
             doneParams.topMargin = dp(12);
             box.addView(done, doneParams);
 
@@ -694,7 +693,7 @@ public class MainActivity extends Activity {
                     }
                 });
 
-        row.addView(sp, new LinearLayout.LayoutParams(dp(150), dp(48)));
+        row.addView(sp, new LinearLayout.LayoutParams(dp(150), dp(42)));
         b.addView(row);
     }
 
@@ -958,13 +957,13 @@ public class MainActivity extends Activity {
                 } catch (Throwable ignored) {}
             });
             lastTitle = title;
-            prefs.edit().putString("lastTitle", lastTitle).putString("lastArtist", lastArtist).apply();
             String artist = metadata == null ? "" : metadata.getString(MediaMetadata.METADATA_KEY_ARTIST);
-            lastArtist = artist == null ? "" : artist;
+            lastArtist = artist == null ? "" : artist.trim();
+            prefs.edit().putString("lastTitle", lastTitle).putString("lastArtist", lastArtist).apply();
             long duration = metadata == null ? 0L : metadata.getLong(MediaMetadata.METADATA_KEY_DURATION);
             long position = Math.max(0L, state.getPosition());
             mediaDetails.setText(lastArtist);
-            mediaDetails.setVisibility(getBool("showDetails", false) ? View.VISIBLE : View.GONE);
+            mediaDetails.setVisibility(getBool("showDetails", false) && !lastArtist.trim().isEmpty() ? View.VISIBLE : View.GONE);
             boolean showProgress = getBool("showProgress", false) && duration > 0;
             mediaProgressText.setVisibility(showProgress ? View.VISIBLE : View.GONE);
             mediaSeekBar.setVisibility(showProgress ? View.VISIBLE : View.GONE);
