@@ -48,6 +48,9 @@ import java.util.Locale;
 
 public class MainActivity extends Activity {
     private final Handler handler = new Handler(Looper.getMainLooper());
+    private final Runnable autoOffRunnable = () -> {
+        try { finishAndRemoveTask(); } catch (Throwable ignored) { finish(); }
+    };
     private final Calendar now = Calendar.getInstance();
     private final SimpleDateFormat numericDateFormat =
             new SimpleDateFormat("dd.MM.yyyy", Locale.US);
@@ -102,6 +105,7 @@ public class MainActivity extends Activity {
             hideSystemUi();
             buildUi();
             updateClock();
+            scheduleAutoOff();
         } catch (Throwable t) {
             showFatalError(t);
         }
@@ -130,6 +134,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         handler.removeCallbacks(ticker);
+        handler.removeCallbacks(autoOffRunnable);
         stopTitleMarquee();
         detachMediaController();
         super.onDestroy();
@@ -154,41 +159,80 @@ public class MainActivity extends Activity {
         top.addView(settingsButton, settingsParams);
         root.addView(top, new LinearLayout.LayoutParams(-1, dp(34)));
 
+        FrameLayout stage = new FrameLayout(this);
+        stage.setBackgroundColor(Color.BLACK);
+        root.addView(stage, new LinearLayout.LayoutParams(-1, 0, 1f));
+
+        LinearLayout clockBlock = new LinearLayout(this);
+        clockBlock.setOrientation(LinearLayout.VERTICAL);
+        clockBlock.setGravity(Gravity.CENTER_HORIZONTAL);
+
         timeText = textView("--:--", 82, Color.rgb(247, 247, 247));
         timeText.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
         timeText.setGravity(Gravity.CENTER);
-        
-        LinearLayout.LayoutParams timeParams = matchWrap();
-        timeParams.topMargin = dp(18);
-        root.addView(timeText, timeParams);
+        timeText.setIncludeFontPadding(true);
+        clockBlock.addView(timeText, new LinearLayout.LayoutParams(-1, dp(96)));
 
         gregorianText = textView("", 22, dateTextColor);
-        gregorianText.setTypeface(
-                Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        gregorianText.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         gregorianText.setGravity(Gravity.CENTER);
-        
-        LinearLayout.LayoutParams gregParams = matchWrap();
-        gregParams.topMargin = dp(4);
-        root.addView(gregorianText, gregParams);
+        gregorianText.setIncludeFontPadding(true);
+        clockBlock.addView(gregorianText, new LinearLayout.LayoutParams(-1, dp(32)));
 
         hebrewText = textView("", 22, dateTextColor);
-        hebrewText.setTypeface(
-                Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        hebrewText.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         hebrewText.setGravity(Gravity.CENTER);
         hebrewText.setTextDirection(View.TEXT_DIRECTION_ANY_RTL);
         hebrewText.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-        
-        LinearLayout.LayoutParams hebParams = matchWrap();
-        hebParams.topMargin = dp(3);
-        root.addView(hebrewText, hebParams);
+        hebrewText.setIncludeFontPadding(true);
+        clockBlock.addView(hebrewText, new LinearLayout.LayoutParams(-1, dp(32)));
 
-        View spacer = new View(this);
-        root.addView(spacer, new LinearLayout.LayoutParams(1, 0, 1f));
+        stage.addView(clockBlock, new FrameLayout.LayoutParams(-1, dp(160), Gravity.TOP | Gravity.CENTER_HORIZONTAL));
 
-        buildMediaSetup(root);
-        buildSystemMediaMirror(root);
+        LinearLayout mediaHolder = new LinearLayout(this);
+        mediaHolder.setOrientation(LinearLayout.VERTICAL);
+        mediaHolder.setGravity(Gravity.CENTER_HORIZONTAL);
+        stage.addView(mediaHolder, new FrameLayout.LayoutParams(-1, -1));
 
+        buildMediaSetup(mediaHolder);
+        buildSystemMediaMirror(mediaHolder);
+
+        stage.post(() -> updateScreenPositions(stage, clockBlock, mediaHolder));
         setContentView(root);
+    }
+
+    private void updateScreenPositions(FrameLayout stage, View clockBlock, View mediaHolder) {
+        if (stage == null) return;
+        try {
+            int h = stage.getHeight();
+            if (h <= 0) return;
+
+            String clockPos = getString("clockDatePosition", "top");
+            String playerPos = getString("playerPosition", "bottom");
+
+            FrameLayout.LayoutParams cp = (FrameLayout.LayoutParams) clockBlock.getLayoutParams();
+            int clockH = clockBlock.getMeasuredHeight();
+            if ("upper".equals(clockPos)) {
+                cp.topMargin = Math.max(0, Math.round(h * 0.33f - clockH / 2f));
+            } else if ("middle".equals(clockPos)) {
+                cp.topMargin = Math.max(0, Math.round(h * 0.50f - clockH / 2f));
+            } else {
+                cp.topMargin = dp(2);
+            }
+            clockBlock.setLayoutParams(cp);
+
+            FrameLayout.LayoutParams mp = (FrameLayout.LayoutParams) mediaHolder.getLayoutParams();
+            int mediaH = mediaHolder.getMeasuredHeight();
+            if ("lower".equals(playerPos)) {
+                mp.topMargin = Math.max(0, Math.round(h * 0.67f - mediaH / 2f));
+            } else if ("middle".equals(playerPos)) {
+                mp.topMargin = Math.max(0, Math.round(h * 0.50f - mediaH / 2f));
+            } else {
+                mp.topMargin = Math.max(0, h - mediaH - dp(2));
+            }
+            mp.height = mediaH;
+            mediaHolder.setLayoutParams(mp);
+        } catch (Throwable ignored) {}
     }
 
     private void buildMediaSetup(LinearLayout root) {
@@ -249,10 +293,12 @@ public class MainActivity extends Activity {
         mediaTitle.setVisibility(View.VISIBLE);
         mediaTitle.setGravity(Gravity.CENTER);
         mediaTitle.setSingleLine(true);
-        mediaDetails = textView("", 13, Color.rgb(175, 175, 175));
+        mediaTitle.setIncludeFontPadding(true);
+        mediaDetails = textView("", 17, Color.rgb(175, 175, 175));
         mediaDetails.setVisibility(View.INVISIBLE);
         mediaDetails.setGravity(Gravity.CENTER);
         mediaDetails.setSingleLine(true);
+        mediaDetails.setIncludeFontPadding(true);
         mediaProgressText = textView("", 12, Color.WHITE);
         mediaProgressText.setVisibility(View.GONE);
 
@@ -311,7 +357,7 @@ public class MainActivity extends Activity {
         mediaProgressRow.addView(mediaTotalText, totalParams);
 
         // Artist first, then song title, followed immediately by the position row.
-        LinearLayout.LayoutParams detailsParams = new LinearLayout.LayoutParams(-1, dp(20));
+        LinearLayout.LayoutParams detailsParams = new LinearLayout.LayoutParams(-1, dp(30));
         mediaMirror.addView(mediaDetails, detailsParams);
 
         LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(-1, dp(30));
@@ -326,12 +372,12 @@ public class MainActivity extends Activity {
         controls.setPadding(0, 0, 0, 0);
         controls.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
 
-        int buttonSize = dp(40);
+        int buttonSize = dp(44);
         int controlWidth = Math.max(
                 dp(180),
                 Math.round(getResources().getDisplayMetrics().widthPixels * 0.44f));
         LinearLayout.LayoutParams controlAreaParams =
-                new LinearLayout.LayoutParams(controlWidth, dp(40));
+                new LinearLayout.LayoutParams(controlWidth, dp(44));
         controlAreaParams.gravity = Gravity.CENTER_HORIZONTAL;
         controlAreaParams.topMargin = dp(-5);
 
@@ -360,7 +406,7 @@ public class MainActivity extends Activity {
                 new LinearLayout.LayoutParams(
                         Math.min(dp(760), Math.max(dp(1),
                                 getResources().getDisplayMetrics().widthPixels - dp(20))),
-                        dp(142));
+                        dp(150));
         mirrorParams.gravity = Gravity.CENTER_HORIZONTAL;
         mirrorParams.topMargin = dp(28);
         mirrorParams.bottomMargin = dp(14);
@@ -405,6 +451,9 @@ public class MainActivity extends Activity {
         e.putInt("frameRadius", getInt("frameRadius", 10));
         e.putInt("buttonColor", getInt("buttonColor", Color.rgb(45,45,45)));
         e.putInt("buttonBorderColor", getInt("buttonBorderColor", Color.rgb(110,110,110)));
+        e.putString("screenSaverDuration", getString("screenSaverDuration", "0"));
+        e.putString("clockDatePosition", getString("clockDatePosition", "top"));
+        e.putString("playerPosition", getString("playerPosition", "bottom"));
         e.apply();
     }
 
@@ -487,12 +536,21 @@ public class MainActivity extends Activity {
             mediaDetails.setTypeface(tf);
             mediaProgressText.setTypeface(tf);
             mediaTitle.setTextSize(playerSize);
-            mediaDetails.setTextSize(Math.max(11, playerSize - 3));
+            mediaDetails.setTextSize(playerSize);
+            int textRowHeight = Math.max(dp(30), dp(playerSize + 12));
+            if (mediaTitle.getLayoutParams() != null) {
+                mediaTitle.getLayoutParams().height = textRowHeight;
+                mediaTitle.requestLayout();
+            }
+            if (mediaDetails.getLayoutParams() != null) {
+                mediaDetails.getLayoutParams().height = textRowHeight;
+                mediaDetails.requestLayout();
+            }
             mediaProgressText.setTextSize(Math.max(10, playerSize - 4));
 
             // Scale the control buttons together with the selected player size.
             float scale = Math.max(0.72f, Math.min(1.45f, playerSize / 17f));
-            int scaledButtonSize = Math.round(dp(40) * scale);
+            int scaledButtonSize = Math.round(dp(44) * scale);
             if (mediaPrev != null && mediaPlayPause != null && mediaNext != null) {
                 mediaPrev.getLayoutParams().width = scaledButtonSize;
                 mediaPrev.getLayoutParams().height = scaledButtonSize;
@@ -547,8 +605,25 @@ public class MainActivity extends Activity {
             mediaNext.setBackgroundColor(Color.TRANSPARENT);
             mediaPrev.setBackgroundColor(Color.TRANSPARENT);
             mediaPlayPause.setBackgroundColor(Color.TRANSPARENT);
+            if (mediaNext.getDrawable() != null) mediaNext.getDrawable().setTint(color);
+            if (mediaPrev.getDrawable() != null) mediaPrev.getDrawable().setTint(color);
+            if (mediaPlayPause.getDrawable() != null) mediaPlayPause.getDrawable().setTint(color);
+            View parent = mediaMirror.getParent() instanceof View ? (View) mediaMirror.getParent() : null;
+            if (parent != null && parent.getParent() instanceof FrameLayout) {
+                FrameLayout stage = (FrameLayout) parent.getParent();
+                updateScreenPositions(stage, stage.getChildAt(0), parent);
+            }
+            scheduleAutoOff();
         }
 
+    }
+
+    private void scheduleAutoOff() {
+        handler.removeCallbacks(autoOffRunnable);
+        String value = getString("screenSaverDuration", "0");
+        long minutes = 0L;
+        try { minutes = Long.parseLong(value); } catch (Throwable ignored) {}
+        if (minutes > 0L) handler.postDelayed(autoOffRunnable, minutes * 60_000L);
     }
 
     private void showSettings() {
@@ -559,19 +634,26 @@ public class MainActivity extends Activity {
             scroll.setFillViewport(true);
             LinearLayout box = new LinearLayout(this);
             box.setOrientation(LinearLayout.VERTICAL);
-            box.setPadding(dp(12), dp(4), dp(12), dp(10));
+            box.setGravity(Gravity.CENTER_HORIZONTAL);
+            box.setPadding(dp(8), dp(2), dp(8), dp(6));
             box.setBackgroundColor(Color.rgb(248, 249, 251));
             scroll.addView(box);
 
-            TextView h = textView("הגדרות", 22, Color.rgb(25, 28, 35));
+            TextView h = textView("הגדרות", 25, Color.rgb(25, 28, 35));
             h.setGravity(Gravity.CENTER);
             h.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
-            box.addView(h, new LinearLayout.LayoutParams(-1, dp(42)));
+            box.addView(h, new LinearLayout.LayoutParams(-1, dp(38)));
 
             addSection(box, "תצוגת שעון ותאריך");
             addSpinner(box, "גודל שעה ותאריך",
                     new String[]{"קטן","בינוני","גדול","גדול מאוד"},
                     new String[]{"38","48","60","72"}, "clockDateSize");
+            addSpinner(box, "מיקום שעה ותאריך",
+                    new String[]{"הכי למעלה","בשליש העליון","באמצע המסך"},
+                    new String[]{"top","upper","middle"}, "clockDatePosition");
+            addSpinner(box, "זמן פעילות השומר מסך",
+                    new String[]{"ללא כיבוי","1 דקות","5 דקות"},
+                    new String[]{"0","1","5"}, "screenSaverDuration");
 
             addSection(box, "גופן");
             addSpinner(box, "צבע",
@@ -593,6 +675,9 @@ public class MainActivity extends Activity {
             addSpinner(box, "גודל נגן",
                     new String[]{"קטן","בינוני","גדול","גדול מאוד"},
                     new String[]{"14","17","20","23"}, "playerSize");
+            addSpinner(box, "מיקום הנגן",
+                    new String[]{"הכי למטה","בשליש התחתון","באמצע המסך"},
+                    new String[]{"bottom","lower","middle"}, "playerPosition");
             addCheck(box, "פרטי אמן (כשקיים בלבד)", "showDetails", getBool("showDetails", true));
             addCheck(box, "שורת מיקום + זמן", "showProgress", true);
 
@@ -611,33 +696,31 @@ public class MainActivity extends Activity {
             Button done = new Button(this);
             done.setText("סיום");
             done.setTextColor(Color.WHITE);
-            done.setTextSize(15);
+            done.setTextSize(16);
             GradientDrawable doneBg = new GradientDrawable();
             doneBg.setColor(Color.rgb(55, 95, 145));
-            doneBg.setCornerRadius(dp(14));
+            doneBg.setCornerRadius(dp(12));
             done.setBackground(doneBg);
-            LinearLayout.LayoutParams doneParams = new LinearLayout.LayoutParams(-1, dp(44));
-            doneParams.topMargin = dp(12);
+            LinearLayout.LayoutParams doneParams = new LinearLayout.LayoutParams(dp(300), dp(42));
+            doneParams.gravity = Gravity.CENTER_HORIZONTAL;
+            doneParams.topMargin = dp(5);
             box.addView(done, doneParams);
 
-            AlertDialog dialog = new AlertDialog.Builder(this)
-                    .setView(scroll)
-                    .create();
-
+            AlertDialog dialog = new AlertDialog.Builder(this).setView(scroll).create();
             done.setOnClickListener(v -> dialog.dismiss());
             dialog.setOnDismissListener(d -> {
                 applySettings();
                 refreshSystemMediaMirror();
+                scheduleAutoOff();
             });
 
             dialog.show();
-
             if (dialog.getWindow() != null) {
                 dialog.getWindow().setBackgroundDrawableResource(android.R.color.white);
                 dialog.getWindow().setDimAmount(0.45f);
                 dialog.getWindow().setLayout(
-                        Math.min(getResources().getDisplayMetrics().widthPixels - dp(24), dp(560)),
-                        Math.min(getResources().getDisplayMetrics().heightPixels - dp(24), dp(760)));
+                        Math.min(getResources().getDisplayMetrics().widthPixels - dp(16), dp(600)),
+                        Math.min(getResources().getDisplayMetrics().heightPixels - dp(16), dp(820)));
             }
         } catch (Throwable t) {
             showFatalError(t);
@@ -645,18 +728,18 @@ public class MainActivity extends Activity {
     }
 
     private void addSection(LinearLayout b, String s) {
-        TextView v = textView(s, 15, Color.rgb(65, 92, 125));
+        TextView v = textView(s, 16, Color.rgb(65, 92, 125));
         v.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         v.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
         v.setPadding(dp(4), 0, dp(4), 0);
-        b.addView(v, new LinearLayout.LayoutParams(-1, dp(40)));
+        b.addView(v, new LinearLayout.LayoutParams(-1, dp(30)));
     }
 
     private void addCheck(LinearLayout b, String s, String k, boolean d) {
         CheckBox x = new CheckBox(this);
         x.setText(s);
         x.setTextColor(Color.rgb(35, 38, 45));
-        x.setTextSize(15);
+        x.setTextSize(16);
         x.setPadding(dp(2), 0, dp(2), 0);
         x.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         if (Build.VERSION.SDK_INT >= 21) {
@@ -670,7 +753,7 @@ public class MainActivity extends Activity {
             } catch (Throwable ignored) {
             }
         });
-        b.addView(x, new LinearLayout.LayoutParams(-1, dp(48)));
+        b.addView(x, new LinearLayout.LayoutParams(-1, dp(36)));
     }
 
     private void addSpinner(LinearLayout b, String label, String[] names,
@@ -678,9 +761,9 @@ public class MainActivity extends Activity {
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
 
-        TextView l = textView(label, 15, Color.rgb(45, 48, 55));
+        TextView l = textView(label, 16, Color.rgb(45, 48, 55));
         l.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
-        row.addView(l, new LinearLayout.LayoutParams(0, dp(48), 1f));
+        row.addView(l, new LinearLayout.LayoutParams(0, dp(38), 1f));
 
         Spinner sp = new Spinner(this);
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(
@@ -688,7 +771,7 @@ public class MainActivity extends Activity {
             @Override public View getView(int position, View convertView, android.view.ViewGroup parent) {
                 TextView v = (TextView) super.getView(position, convertView, parent);
                 v.setTextColor(Color.rgb(35, 38, 45));
-                v.setTextSize(14);
+                v.setTextSize(15);
                 v.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
                 v.setPadding(dp(8), 0, dp(8), 0);
                 return v;
@@ -781,7 +864,7 @@ public class MainActivity extends Activity {
                     }
                 });
 
-        row.addView(sp, new LinearLayout.LayoutParams(dp(150), dp(42)));
+        row.addView(sp, new LinearLayout.LayoutParams(dp(160), dp(38)));
         b.addView(row);
     }
 
@@ -898,22 +981,6 @@ public class MainActivity extends Activity {
 
             if (selected == null) {
                 hideMediaMirror();
-                if (getBool("showLastMedia", false)) {
-                    mediaMirror.setVisibility(View.VISIBLE);
-                    stopTitleMarquee();
-                    mediaTitle.setText("");
-                    mediaDetails.setText("");
-                    mediaDetails.setVisibility(View.GONE);
-                    mediaProgressText.setVisibility(View.GONE);
-                    mediaProgressRow.setVisibility(View.GONE);
-                    mediaCurrentText.setVisibility(View.GONE);
-                    mediaTotalText.setVisibility(View.GONE);
-                    mediaSeekBar.setVisibility(View.GONE);
-                    mediaNext.setVisibility(View.GONE);
-                    mediaPrev.setVisibility(View.GONE);
-                    mediaPlayPause.setVisibility(View.GONE);
-                    applySettings();
-                }
                 return;
             }
 
@@ -1063,6 +1130,8 @@ public class MainActivity extends Activity {
             mediaPlayPause.setImageResource(
                     isPlaying ? R.drawable.media_pause : R.drawable.media_play);
             mediaPlayPause.setContentDescription(isPlaying ? "השהה" : "נגן");
+            int mediaColor = getInt("fontColor", dateTextColor);
+            if (mediaPlayPause.getDrawable() != null) mediaPlayPause.getDrawable().setTint(mediaColor);
 
             long actions = state.getActions();
             mediaPrev.setVisibility(
