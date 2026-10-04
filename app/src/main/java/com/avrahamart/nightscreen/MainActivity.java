@@ -268,14 +268,17 @@ public class MainActivity extends Activity {
         LinearLayout progressRow = mediaProgressRow;
         progressRow.setOrientation(LinearLayout.HORIZONTAL);
         progressRow.setGravity(Gravity.CENTER_VERTICAL);
-        progressRow.setPadding(dp(16), 0, dp(16), 0);
+        progressRow.setPadding(0, 0, 0, 0);
         progressRow.setVisibility(View.GONE);
 
         mediaCurrentText = textView("0:00", 12, Color.WHITE);
         mediaCurrentText.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
         mediaCurrentText.setSingleLine(true);
         mediaCurrentText.setIncludeFontPadding(false);
-        progressRow.addView(mediaCurrentText, new LinearLayout.LayoutParams(dp(42), dp(28)));
+        LinearLayout.LayoutParams currentParams =
+                new LinearLayout.LayoutParams(dp(42), dp(28));
+        currentParams.rightMargin = dp(12);
+        progressRow.addView(mediaCurrentText, currentParams);
 
         mediaSeekBar = new SeekBar(this);
         mediaSeekBar.setVisibility(View.GONE);
@@ -300,13 +303,26 @@ public class MainActivity extends Activity {
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
-        progressRow.addView(mediaSeekBar, new LinearLayout.LayoutParams(0, dp(28), 1f));
+        int halfLineWidth = Math.max(
+                dp(110),
+                Math.min(dp(380),
+                        Math.round(getResources().getDisplayMetrics().widthPixels * 0.50f)));
+        progressRow.addView(mediaSeekBar,
+                new LinearLayout.LayoutParams(halfLineWidth, dp(28)));
+
         mediaTotalText = textView("0:00", 12, Color.WHITE);
         mediaTotalText.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         mediaTotalText.setSingleLine(true);
         mediaTotalText.setIncludeFontPadding(false);
-        progressRow.addView(mediaTotalText, new LinearLayout.LayoutParams(dp(42), dp(28)));
-        mediaMirror.addView(progressRow, new LinearLayout.LayoutParams(-1, dp(30)));
+        LinearLayout.LayoutParams totalParams =
+                new LinearLayout.LayoutParams(dp(42), dp(28));
+        totalParams.leftMargin = dp(12);
+        progressRow.addView(mediaTotalText, totalParams);
+
+        LinearLayout.LayoutParams progressRowParams =
+                new LinearLayout.LayoutParams(-1, dp(30));
+        progressRowParams.topMargin = dp(8);
+        mediaMirror.addView(progressRow, progressRowParams);
         mediaProgressText = textView("", 1, Color.TRANSPARENT);
         mediaProgressText.setVisibility(View.GONE);
 
@@ -316,14 +332,15 @@ public class MainActivity extends Activity {
         controls.setGravity(Gravity.CENTER);
         controls.setPadding(0, 0, 0, 0);
 
-        mediaNext = mediaButton("▶|");
-        mediaNext.setTextSize(25);
-        mediaNext.setTypeface(Typeface.DEFAULT);
-        mediaNext.setTextColor(Color.WHITE);
-        mediaNext.setBackgroundColor(Color.TRANSPARENT);
-        mediaNext.setGravity(Gravity.CENTER);
-        mediaNext.setOnClickListener(v -> sendNext());
-        controls.addView(mediaNext, new LinearLayout.LayoutParams(dp(62), dp(52)));
+        mediaPrev = mediaButton("|◀");
+        mediaPrev.setTextSize(25);
+        mediaPrev.setTypeface(Typeface.DEFAULT);
+        mediaPrev.setTextColor(Color.WHITE);
+        mediaPrev.setBackgroundColor(Color.TRANSPARENT);
+        mediaPrev.setGravity(Gravity.CENTER);
+        mediaPrev.setContentDescription("הקודם");
+        mediaPrev.setOnClickListener(v -> sendPrevious());
+        controls.addView(mediaPrev, new LinearLayout.LayoutParams(dp(62), dp(52)));
 
         mediaPlayPause = mediaButton("▶");
         mediaPlayPause.setTextSize(26);
@@ -344,14 +361,15 @@ public class MainActivity extends Activity {
         });
         controls.addView(mediaPlayPause, new LinearLayout.LayoutParams(dp(62), dp(54)));
 
-        mediaPrev = mediaButton("|◀");
-        mediaPrev.setTextSize(25);
-        mediaPrev.setTypeface(Typeface.DEFAULT);
-        mediaPrev.setTextColor(Color.WHITE);
-        mediaPrev.setBackgroundColor(Color.TRANSPARENT);
-        mediaPrev.setGravity(Gravity.CENTER);
-        mediaPrev.setOnClickListener(v -> sendPrevious());
-        controls.addView(mediaPrev, new LinearLayout.LayoutParams(dp(62), dp(52)));
+        mediaNext = mediaButton("▶|");
+        mediaNext.setTextSize(25);
+        mediaNext.setTypeface(Typeface.DEFAULT);
+        mediaNext.setTextColor(Color.WHITE);
+        mediaNext.setBackgroundColor(Color.TRANSPARENT);
+        mediaNext.setGravity(Gravity.CENTER);
+        mediaNext.setContentDescription("הבא");
+        mediaNext.setOnClickListener(v -> sendNext());
+        controls.addView(mediaNext, new LinearLayout.LayoutParams(dp(62), dp(52)));
 
         mediaMirror.addView(controls, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(52)));
@@ -787,7 +805,7 @@ public class MainActivity extends Activity {
 
     private int colorValue(String value) {
         if ("white".equals(value)) return Color.WHITE;
-        if ("light".equals(value)) return Color.rgb(220,220,220);
+        if ("light".equals(value)) return Color.argb(102, 220, 220, 220);
         if ("gray".equals(value)) return Color.GRAY;
         if ("blue".equals(value)) return Color.rgb(120,165,205);
         if ("slate".equals(value)) return Color.rgb(100,125,150);
@@ -1211,14 +1229,26 @@ public class MainActivity extends Activity {
             float available = Math.max(0,
                     mediaTitle.getWidth() - mediaTitle.getPaddingLeft() - mediaTitle.getPaddingRight());
 
+            stopTitleMarquee();
+
             if (!value.isEmpty() && textWidth > available + dp(2)) {
-                // Only now turn marquee on. Until this point the title stays
-                // perfectly centered and completely still.
-                mediaTitle.setGravity(Gravity.CENTER);
+                // The title fits normally when short. Only overflowing titles
+                // become horizontally scrollable.
+                mediaTitle.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
                 mediaTitle.setHorizontallyScrolling(true);
-                mediaTitle.setEllipsize(TextUtils.TruncateAt.MARQUEE);
-                mediaTitle.setMarqueeRepeatLimit(-1);
-                mediaTitle.setSelected(true);
+                mediaTitle.setEllipsize(null);
+                mediaTitle.setSelected(false);
+
+                final int overflow = Math.max(1, (int)Math.ceil(textWidth - available));
+                titleMarqueeAnimator = ObjectAnimator.ofInt(
+                        mediaTitle, "scrollX", 0, overflow);
+                long duration = Math.max(7000L,
+                        Math.min(18000L, 6500L + overflow * 18L));
+                titleMarqueeAnimator.setDuration(duration);
+                titleMarqueeAnimator.setStartDelay(1000L);
+                titleMarqueeAnimator.setRepeatMode(ObjectAnimator.REVERSE);
+                titleMarqueeAnimator.setRepeatCount(ObjectAnimator.INFINITE);
+                titleMarqueeAnimator.start();
             } else {
                 mediaTitle.setGravity(Gravity.CENTER);
                 mediaTitle.setHorizontallyScrolling(false);
