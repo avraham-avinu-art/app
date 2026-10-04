@@ -268,8 +268,8 @@ public class MainActivity extends Activity {
         mediaCurrentText.setSingleLine(true);
         mediaCurrentText.setIncludeFontPadding(false);
         LinearLayout.LayoutParams currentParams =
-                new LinearLayout.LayoutParams(dp(42), dp(32));
-        currentParams.rightMargin = dp(18);
+                new LinearLayout.LayoutParams(dp(48), dp(32));
+        currentParams.rightMargin = dp(24);
         mediaProgressRow.addView(mediaCurrentText, currentParams);
 
         mediaSeekBar = new SeekBar(this);
@@ -306,8 +306,8 @@ public class MainActivity extends Activity {
         mediaTotalText.setSingleLine(true);
         mediaTotalText.setIncludeFontPadding(false);
         LinearLayout.LayoutParams totalParams =
-                new LinearLayout.LayoutParams(dp(42), dp(32));
-        totalParams.leftMargin = dp(18);
+                new LinearLayout.LayoutParams(dp(48), dp(32));
+        totalParams.leftMargin = dp(24);
         mediaProgressRow.addView(mediaTotalText, totalParams);
 
         // Tight vertical gap matching the supplied reference image.
@@ -324,12 +324,11 @@ public class MainActivity extends Activity {
         mediaMirror.addView(controlGap,
                 new LinearLayout.LayoutParams(1, dp(30)));
 
-        LinearLayout controls = new LinearLayout(this);
-        controls.setOrientation(LinearLayout.HORIZONTAL);
-        controls.setGravity(Gravity.CENTER);
+        FrameLayout controls = new FrameLayout(this);
         controls.setPadding(0, 0, 0, 0);
         controls.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
 
+        int buttonSize = dp(40);
         int controlWidth = Math.max(
                 dp(180),
                 Math.round(getResources().getDisplayMetrics().widthPixels * 0.44f));
@@ -340,17 +339,23 @@ public class MainActivity extends Activity {
         mediaPrev = new MediaControlView(this, MediaControlView.PREVIOUS);
         mediaPrev.setContentDescription("הקודם");
         mediaPrev.setOnClickListener(v -> sendPrevious());
-        controls.addView(mediaPrev, new LinearLayout.LayoutParams(0, dp(40), 1f));
+        FrameLayout.LayoutParams prevParams =
+                new FrameLayout.LayoutParams(buttonSize, buttonSize, Gravity.LEFT | Gravity.CENTER_VERTICAL);
+        controls.addView(mediaPrev, prevParams);
 
         mediaPlayPause = new MediaControlView(this, MediaControlView.PLAY_PAUSE);
         mediaPlayPause.setContentDescription("נגן");
         mediaPlayPause.setOnClickListener(v -> sendPlayPause());
-        controls.addView(mediaPlayPause, new LinearLayout.LayoutParams(0, dp(44), 1f));
+        FrameLayout.LayoutParams playParams =
+                new FrameLayout.LayoutParams(buttonSize, buttonSize, Gravity.CENTER);
+        controls.addView(mediaPlayPause, playParams);
 
         mediaNext = new MediaControlView(this, MediaControlView.NEXT);
         mediaNext.setContentDescription("הבא");
         mediaNext.setOnClickListener(v -> sendNext());
-        controls.addView(mediaNext, new LinearLayout.LayoutParams(0, dp(64), 1f));
+        FrameLayout.LayoutParams nextParams =
+                new FrameLayout.LayoutParams(buttonSize, buttonSize, Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+        controls.addView(mediaNext, nextParams);
 
         mediaMirror.addView(controls, controlAreaParams);
 
@@ -393,7 +398,7 @@ public class MainActivity extends Activity {
         lastArtist = getString("lastArtist", lastArtist);
 
         if (!getBool("referenceLayoutV3Applied", false)) {
-            e.putBoolean("showDetails", true);
+            e.putBoolean("showDetails", getBool("showDetails", true));
             e.putBoolean("showProgress", true);
             e.putBoolean("frameEnabled", false);
             e.putBoolean("referenceLayoutV3Applied", true);
@@ -561,7 +566,7 @@ public class MainActivity extends Activity {
             addSpinner(box, "גודל נגן",
                     new String[]{"קטן","בינוני","גדול","גדול מאוד"},
                     new String[]{"14","17","20","23"}, "playerSize");
-            addCheck(box, "פרטי אמן (כשקיים בלבד)", "showDetails", false);
+            addCheck(box, "פרטי אמן (כשקיים בלבד)", "showDetails", getBool("showDetails", true));
             addCheck(box, "שורת מיקום + זמן", "showProgress", true);
             addCheck(box, "לחצן השמעה אחרונה כשאין שיר פעיל", "showLastMedia", false);
 
@@ -1081,8 +1086,9 @@ public class MainActivity extends Activity {
             long duration = metadata == null ? 0L : metadata.getLong(MediaMetadata.METADATA_KEY_DURATION);
             long position = Math.max(0L, state.getPosition());
             if (duration > 0) position = Math.min(position, duration);
+            boolean showDetails = getBool("showDetails", true);
             mediaDetails.setText(lastArtist);
-            mediaDetails.setVisibility(!lastArtist.isEmpty() ? View.VISIBLE : View.GONE);
+            mediaDetails.setVisibility(showDetails && !lastArtist.isEmpty() ? View.VISIBLE : View.GONE);
             boolean showProgress = getBool("showProgress", false) && duration > 0;
             mediaProgressRow.setVisibility(showProgress ? View.VISIBLE : View.GONE);
             mediaSeekBar.setVisibility(showProgress ? View.VISIBLE : View.GONE);
