@@ -1259,6 +1259,14 @@ public class MainActivity extends Activity {
         }
     }
 
+    private TextView mediaButton(String symbol) {
+        TextView v = textView(symbol, 24, Color.WHITE);
+        v.setGravity(Gravity.CENTER);
+        v.setClickable(true);
+        v.setTypeface(Typeface.DEFAULT_BOLD);
+        return v;
+    }
+
     private static class MediaControlView extends TextView {
         static final int PREVIOUS = 0;
         static final int PLAY_PAUSE = 1;
