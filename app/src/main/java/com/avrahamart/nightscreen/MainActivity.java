@@ -181,7 +181,7 @@ public class MainActivity extends Activity {
         timeText.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
         timeText.setGravity(Gravity.CENTER);
         timeText.setIncludeFontPadding(true);
-        int initialClockSize = getInt("clockDateSize", 48);
+        int initialClockSize = getInt("clockDateSize", 72);
         int initialClockHeight = Math.max(dp(62), dp(initialClockSize + 20));
         clockBlock.addView(timeText, new LinearLayout.LayoutParams(-1, initialClockHeight));
 
@@ -418,10 +418,10 @@ public class MainActivity extends Activity {
                 new LinearLayout.LayoutParams(
                         Math.min(dp(760), Math.max(dp(1),
                                 getResources().getDisplayMetrics().widthPixels - dp(20))),
-                        dp(150));
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
         mirrorParams.gravity = Gravity.CENTER_HORIZONTAL;
         mirrorParams.topMargin = dp(28);
-        mirrorParams.bottomMargin = dp(14);
+        mirrorParams.bottomMargin = 0;
         root.addView(mediaMirror, mirrorParams);
     }
 
@@ -464,6 +464,13 @@ public class MainActivity extends Activity {
         e.putInt("buttonColor", getInt("buttonColor", Color.rgb(45,45,45)));
         e.putInt("buttonBorderColor", getInt("buttonBorderColor", Color.rgb(110,110,110)));
         e.putString("screenSaverDuration", getString("screenSaverDuration", "0"));
+        if (!getBool("defaultLayoutV4Applied", false)) {
+            // Apply the requested new defaults once to existing installations too.
+            e.putInt("clockDateSize", 72);
+            e.putString("clockDatePosition", "upper");
+            e.putString("playerPosition", "bottom");
+            e.putBoolean("defaultLayoutV4Applied", true);
+        }
         e.putString("clockDatePosition", getString("clockDatePosition", "upper"));
         e.putString("playerPosition", getString("playerPosition", "bottom"));
         e.commit();
@@ -521,7 +528,7 @@ public class MainActivity extends Activity {
 
         int color = getInt("fontColor", dateTextColor);
         int size = getInt("fontSize", 17);
-        int clockDateSize = getInt("clockDateSize", 48);
+        int clockDateSize = getInt("clockDateSize", 72);
         int playerSize = getInt("playerSize", 17);
         int weight = getInt("fontWeight", 1);
         Typeface tf = Typeface.create(
