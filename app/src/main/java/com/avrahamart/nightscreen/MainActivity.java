@@ -58,6 +58,8 @@ public class MainActivity extends Activity {
     private TextView settingsButton;
     private TextView mediaDetails;
     private TextView mediaProgressText;
+    private TextView mediaCurrentText;
+    private TextView mediaTotalText;
     private SeekBar mediaSeekBar;
     private TextView lastMediaButton;
     private MediaController lastKnownMediaController;
@@ -258,11 +260,15 @@ public class MainActivity extends Activity {
         mediaDetails.setVisibility(View.GONE);
         mediaMirror.addView(mediaDetails, new LinearLayout.LayoutParams(-1, dp(22)));
 
-        mediaProgressText = textView("", 12, Color.rgb(160, 160, 160));
-        mediaProgressText.setGravity(Gravity.CENTER);
-        mediaProgressText.setSingleLine(true);
-        mediaProgressText.setVisibility(View.GONE);
-        mediaMirror.addView(mediaProgressText, new LinearLayout.LayoutParams(-1, dp(20)));
+        LinearLayout progressRow = new LinearLayout(this);
+        progressRow.setOrientation(LinearLayout.HORIZONTAL);
+        progressRow.setGravity(Gravity.CENTER_VERTICAL);
+        progressRow.setVisibility(View.GONE);
+
+        mediaCurrentText = textView("0:00", 12, Color.WHITE);
+        mediaCurrentText.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
+        mediaCurrentText.setSingleLine(true);
+        progressRow.addView(mediaCurrentText, new LinearLayout.LayoutParams(dp(42), dp(28)));
 
         mediaSeekBar = new SeekBar(this);
         mediaSeekBar.setVisibility(View.GONE);
@@ -287,7 +293,14 @@ public class MainActivity extends Activity {
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
-        mediaMirror.addView(mediaSeekBar, new LinearLayout.LayoutParams(-1, dp(20)));
+        progressRow.addView(mediaSeekBar, new LinearLayout.LayoutParams(0, dp(28), 1f));
+        mediaTotalText = textView("0:00", 12, Color.WHITE);
+        mediaTotalText.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+        mediaTotalText.setSingleLine(true);
+        progressRow.addView(mediaTotalText, new LinearLayout.LayoutParams(dp(42), dp(28)));
+        mediaMirror.addView(progressRow, new LinearLayout.LayoutParams(-1, dp(30)));
+        mediaProgressText = textView("", 1, Color.TRANSPARENT);
+        mediaProgressText.setVisibility(View.GONE);
 
         // Row 2: clearly visible, modern, subtle controls.
         LinearLayout controls = new LinearLayout(this);
@@ -511,14 +524,14 @@ public class MainActivity extends Activity {
             scroll.setFillViewport(true);
             LinearLayout box = new LinearLayout(this);
             box.setOrientation(LinearLayout.VERTICAL);
-            box.setPadding(dp(9), dp(2), dp(9), dp(7));
+            box.setPadding(dp(12), dp(4), dp(12), dp(10));
             box.setBackgroundColor(Color.rgb(248, 249, 251));
             scroll.addView(box);
 
             TextView h = textView("הגדרות", 22, Color.rgb(25, 28, 35));
             h.setGravity(Gravity.CENTER);
             h.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
-            box.addView(h, new LinearLayout.LayoutParams(-1, dp(36)));
+            box.addView(h, new LinearLayout.LayoutParams(-1, dp(42)));
 
             addSection(box, "תצוגת שעון ותאריך");
             addSpinner(box, "גודל שעה ותאריך",
@@ -569,8 +582,8 @@ public class MainActivity extends Activity {
             doneBg.setColor(Color.rgb(55, 95, 145));
             doneBg.setCornerRadius(dp(14));
             done.setBackground(doneBg);
-            LinearLayout.LayoutParams doneParams = new LinearLayout.LayoutParams(-1, dp(40));
-            doneParams.topMargin = dp(7);
+            LinearLayout.LayoutParams doneParams = new LinearLayout.LayoutParams(-1, dp(44));
+            doneParams.topMargin = dp(12);
             box.addView(done, doneParams);
 
             AlertDialog dialog = new AlertDialog.Builder(this)
@@ -590,7 +603,7 @@ public class MainActivity extends Activity {
                 dialog.getWindow().setDimAmount(0.45f);
                 dialog.getWindow().setLayout(
                         Math.min(getResources().getDisplayMetrics().widthPixels - dp(24), dp(560)),
-                        Math.min(getResources().getDisplayMetrics().heightPixels - dp(18), dp(700)));
+                        Math.min(getResources().getDisplayMetrics().heightPixels - dp(24), dp(760)));
             }
         } catch (Throwable t) {
             showFatalError(t);
@@ -602,7 +615,7 @@ public class MainActivity extends Activity {
         v.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         v.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
         v.setPadding(dp(4), 0, dp(4), 0);
-        b.addView(v, new LinearLayout.LayoutParams(-1, dp(28)));
+        b.addView(v, new LinearLayout.LayoutParams(-1, dp(40)));
     }
 
     private void addCheck(LinearLayout b, String s, String k, boolean d) {
@@ -623,7 +636,7 @@ public class MainActivity extends Activity {
             } catch (Throwable ignored) {
             }
         });
-        b.addView(x, new LinearLayout.LayoutParams(-1, dp(38)));
+        b.addView(x, new LinearLayout.LayoutParams(-1, dp(48)));
     }
 
     private void addSpinner(LinearLayout b, String label, String[] names,
@@ -633,7 +646,7 @@ public class MainActivity extends Activity {
 
         TextView l = textView(label, 15, Color.rgb(45, 48, 55));
         l.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
-        row.addView(l, new LinearLayout.LayoutParams(0, dp(38), 1f));
+        row.addView(l, new LinearLayout.LayoutParams(0, dp(48), 1f));
 
         Spinner sp = new Spinner(this);
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(
@@ -734,7 +747,7 @@ public class MainActivity extends Activity {
                     }
                 });
 
-        row.addView(sp, new LinearLayout.LayoutParams(dp(150), dp(38)));
+        row.addView(sp, new LinearLayout.LayoutParams(dp(150), dp(42)));
         b.addView(row);
     }
 
@@ -894,6 +907,8 @@ public class MainActivity extends Activity {
                     mediaDetails.setText("");
                     mediaDetails.setVisibility(View.GONE);
                     mediaProgressText.setVisibility(View.GONE);
+                    mediaCurrentText.setVisibility(View.GONE);
+                    mediaTotalText.setVisibility(View.GONE);
                     mediaSeekBar.setVisibility(View.GONE);
                     mediaNext.setVisibility(View.GONE);
                     mediaPrev.setVisibility(View.GONE);
@@ -1039,18 +1054,28 @@ public class MainActivity extends Activity {
             });
             lastTitle = title;
             String artist = metadata == null ? "" : metadata.getString(MediaMetadata.METADATA_KEY_ARTIST);
-            lastArtist = artist == null ? "" : artist.trim();
+            artist = artist == null ? "" : artist.trim();
+            if (artist.equalsIgnoreCase("unknown artist") ||
+                    artist.equalsIgnoreCase("unknown") ||
+                    artist.equalsIgnoreCase("artist unknown") ||
+                    artist.equals("אמן לא ידוע") ||
+                    artist.equals("אמן לא ידוע/ה") ||
+                    artist.equals("לא ידוע")) {
+                artist = "";
+            }
+            lastArtist = artist;
             prefs.edit().putString("lastTitle", lastTitle).putString("lastArtist", lastArtist).apply();
             long duration = metadata == null ? 0L : metadata.getLong(MediaMetadata.METADATA_KEY_DURATION);
             long position = Math.max(0L, state.getPosition());
             mediaDetails.setText(lastArtist);
-            mediaDetails.setVisibility(getBool("showDetails", false) && !lastArtist.trim().isEmpty() ? View.VISIBLE : View.GONE);
+            mediaDetails.setVisibility(getBool("showDetails", false) && !lastArtist.isEmpty() ? View.VISIBLE : View.GONE);
             boolean showProgress = getBool("showProgress", false) && duration > 0;
-            mediaProgressText.setVisibility(showProgress ? View.VISIBLE : View.GONE);
             mediaSeekBar.setVisibility(showProgress ? View.VISIBLE : View.GONE);
+            mediaCurrentText.setVisibility(showProgress ? View.VISIBLE : View.GONE);
+            mediaTotalText.setVisibility(showProgress ? View.VISIBLE : View.GONE);
             if (duration > 0) {
-                // Total time first, current time second.
-                mediaProgressText.setText(formatMs(duration) + "  /  " + formatMs(position));
+                mediaCurrentText.setText(formatMs(position));
+                mediaTotalText.setText(formatMs(duration));
                 mediaSeekBar.setMax(1000);
                 mediaSeekBar.setProgress((int)Math.min(1000L, (position * 1000L) / duration));
             }
