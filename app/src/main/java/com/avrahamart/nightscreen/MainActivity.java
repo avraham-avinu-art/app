@@ -73,9 +73,9 @@ public class MainActivity extends Activity {
     private LinearLayout mediaSetup;
     private LinearLayout mediaMirror;
     private TextView mediaTitle;
-    private TextView mediaPlayPause;
-    private TextView mediaPrev;
-    private TextView mediaNext;
+    private ImageView mediaPlayPause;
+    private ImageView mediaPrev;
+    private ImageView mediaNext;
 
     private MediaSessionManager mediaSessionManager;
     private MediaController mediaController;
@@ -337,22 +337,19 @@ public class MainActivity extends Activity {
                 new LinearLayout.LayoutParams(controlWidth, dp(40));
         controlAreaParams.gravity = Gravity.CENTER_HORIZONTAL;
 
-        mediaPrev = new MediaControlView(this, MediaControlView.PREVIOUS);
-        mediaPrev.setContentDescription("הקודם");
+        mediaPrev = mediaIconButton(R.drawable.media_previous, "הקודם");
         mediaPrev.setOnClickListener(v -> sendPrevious());
         FrameLayout.LayoutParams prevParams =
                 new FrameLayout.LayoutParams(buttonSize, buttonSize, Gravity.LEFT | Gravity.CENTER_VERTICAL);
         controls.addView(mediaPrev, prevParams);
 
-        mediaPlayPause = new MediaControlView(this, MediaControlView.PLAY_PAUSE);
-        mediaPlayPause.setContentDescription("נגן");
+        mediaPlayPause = mediaIconButton(R.drawable.media_play, "נגן");
         mediaPlayPause.setOnClickListener(v -> sendPlayPause());
         FrameLayout.LayoutParams playParams =
                 new FrameLayout.LayoutParams(buttonSize, buttonSize, Gravity.CENTER);
         controls.addView(mediaPlayPause, playParams);
 
-        mediaNext = new MediaControlView(this, MediaControlView.NEXT);
-        mediaNext.setContentDescription("הבא");
+        mediaNext = mediaIconButton(R.drawable.media_next, "הבא");
         mediaNext.setOnClickListener(v -> sendNext());
         FrameLayout.LayoutParams nextParams =
                 new FrameLayout.LayoutParams(buttonSize, buttonSize, Gravity.RIGHT | Gravity.CENTER_VERTICAL);
@@ -1105,12 +1102,10 @@ public class MainActivity extends Activity {
             }
             mediaPlayPause.setVisibility(View.VISIBLE);
             lastMediaButton.setVisibility(View.GONE);
-            if (mediaPlayPause instanceof MediaControlView) {
-                ((MediaControlView) mediaPlayPause).setPlaying(
-                        playback == PlaybackState.STATE_PLAYING);
-            }
-            mediaPlayPause.setContentDescription(
-                    playback == PlaybackState.STATE_PLAYING ? "השהה" : "נגן");
+            boolean isPlaying = playback == PlaybackState.STATE_PLAYING;
+            mediaPlayPause.setImageResource(
+                    isPlaying ? R.drawable.media_pause : R.drawable.media_play);
+            mediaPlayPause.setContentDescription(isPlaying ? "השהה" : "נגן");
 
             long actions = state.getActions();
             mediaPrev.setVisibility(
@@ -1304,87 +1299,17 @@ public class MainActivity extends Activity {
         return v;
     }
 
-    private static class MediaControlView extends TextView {
-        static final int PREVIOUS = 0;
-        static final int PLAY_PAUSE = 1;
-        static final int NEXT = 2;
-
-        private final int kind;
-        private boolean playing;
-
-        MediaControlView(android.content.Context context, int kind) {
-            super(context);
-            this.kind = kind;
-            setWillNotDraw(false);
-            setBackgroundColor(Color.TRANSPARENT);
-            setTextColor(Color.TRANSPARENT);
-            setGravity(Gravity.CENTER);
-            setClickable(true);
-        }
-
-        void setPlaying(boolean value) {
-            playing = value;
-            invalidate();
-        }
-
-        @Override protected void onDraw(android.graphics.Canvas canvas) {
-            super.onDraw(canvas);
-            float cx = getWidth() * 0.5f;
-            float cy = getHeight() * 0.5f;
-            float u = Math.min(getWidth(), getHeight());
-
-            android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
-            p.setColor(Color.WHITE);
-            p.setStyle(android.graphics.Paint.Style.FILL);
-
-            if (kind == PREVIOUS) {
-                // Physical LEFT: ◀|
-                float h = u * 0.48f;
-                float triW = u * 0.19f;
-                float barW = u * 0.055f;
-                float gap = u * 0.025f;
-                float barLeft = cx + gap;
-                canvas.drawRect(barLeft, cy - h/2, barLeft + barW, cy + h/2, p);
-
-                android.graphics.Path path = new android.graphics.Path();
-                float base = cx - gap;
-                path.moveTo(base - triW, cy);
-                path.lineTo(base, cy - h/2);
-                path.lineTo(base, cy + h/2);
-                path.close();
-                canvas.drawPath(path, p);
-            } else if (kind == NEXT) {
-                // Physical RIGHT: |▶
-                float h = u * 0.48f;
-                float triW = u * 0.19f;
-                float barW = u * 0.055f;
-                float gap = u * 0.025f;
-                float barLeft = cx - gap - barW;
-                canvas.drawRect(barLeft, cy - h/2, barLeft + barW, cy + h/2, p);
-
-                android.graphics.Path path = new android.graphics.Path();
-                float base = cx + gap;
-                path.moveTo(base, cy - h/2);
-                path.lineTo(base + triW, cy);
-                path.lineTo(base, cy + h/2);
-                path.close();
-                canvas.drawPath(path, p);
-            } else if (playing) {
-                float h = u * 0.52f;
-                float w = u * 0.07f;
-                float gap = u * 0.07f;
-                canvas.drawRect(cx - gap/2 - w, cy - h/2, cx - gap/2, cy + h/2, p);
-                canvas.drawRect(cx + gap/2, cy - h/2, cx + gap/2 + w, cy + h/2, p);
-            } else {
-                android.graphics.Path path = new android.graphics.Path();
-                float h = u * 0.48f;
-                path.moveTo(cx - u * 0.12f, cy - h/2);
-                path.lineTo(cx + u * 0.16f, cy);
-                path.lineTo(cx - u * 0.12f, cy + h/2);
-                path.close();
-                canvas.drawPath(path, p);
-            }
-        }
+    private ImageView mediaIconButton(int drawableRes, String description) {
+        ImageView v = new ImageView(this);
+        v.setImageResource(drawableRes);
+        v.setScaleType(ImageView.ScaleType.CENTER);
+        v.setContentDescription(description);
+        v.setClickable(true);
+        v.setFocusable(true);
+        v.setBackgroundColor(Color.TRANSPARENT);
+        v.setPadding(0, 0, 0, 0);
+        v.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+        return v;
     }
 
     private TextView textView(String text, float size, int color) {
