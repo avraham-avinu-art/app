@@ -305,7 +305,7 @@ public class MainActivity extends Activity {
         mediaProgressRow.addView(mediaTotalText, totalParams);
 
         // 48dp empty space reproduces the vertical gap in the reference.
-        Space controlGap = new Space(this);
+        View controlGap = new View(this);
         mediaMirror.addView(mediaProgressRow,
                 new LinearLayout.LayoutParams(-1, dp(32)));
         mediaMirror.addView(controlGap,
