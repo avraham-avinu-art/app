@@ -255,9 +255,9 @@ public class MainActivity extends Activity {
             } else {
                 mp.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
                 int mediaH = Math.max(0, mediaHolder.getMeasuredHeight());
-                // "Lower third" means the player is centered in the lower third,
+                // "Lower quarter" is positioned 20% above the bottom edge,
                 // while "bottom" remains anchored to the very bottom edge.
-                mp.topMargin = Math.max(0, Math.round((h * 5f / 6f) - mediaH / 2f));
+                mp.topMargin = Math.max(0, Math.round((h * 0.80f) - mediaH / 2f));
                 mp.bottomMargin = 0;
                 mp.height = FrameLayout.LayoutParams.WRAP_CONTENT;
             }
@@ -740,7 +740,7 @@ public class MainActivity extends Activity {
                     new String[]{"קטן","בינוני","גדול","גדול מאוד"},
                     new String[]{"14","17","20","23"}, "playerSize");
             addSpinner(s4, "מיקום הנגן",
-                    new String[]{"בשליש התחתון","הכי למטה"},
+                    new String[]{"ברבע התחתון","הכי למטה"},
                     new String[]{"lower","bottom"}, "playerPosition");
 
             LinearLayout s5 = addCard(box, "מסגרת לנגן");
