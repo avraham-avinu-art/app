@@ -239,60 +239,44 @@ public class MainActivity extends Activity {
     private void buildSystemMediaMirror(LinearLayout root) {
         mediaMirror = new LinearLayout(this);
         mediaMirror.setOrientation(LinearLayout.VERTICAL);
-        mediaMirror.setGravity(Gravity.CENTER);
-        mediaMirror.setPadding(dp(6), dp(2), dp(6), dp(2));
+        mediaMirror.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        mediaMirror.setPadding(0, 0, 0, 0);
         mediaMirror.setBackgroundColor(Color.BLACK);
         mediaMirror.setVisibility(View.GONE);
 
-        // Row 1: centered song title. Marquee is enabled only when the title
-        // is actually wider than the available screen width.
+        // The reference player is intentionally clean: the position row is
+        // the first visible element and the three controls are widely spaced.
         mediaTitle = textView("", 17, Color.WHITE);
-        mediaTitle.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        mediaTitle.setSingleLine(true);
-        mediaTitle.setGravity(Gravity.CENTER);
-        mediaTitle.setEllipsize(TextUtils.TruncateAt.END);
-        mediaTitle.setMarqueeRepeatLimit(-1);
-        mediaTitle.setSelected(false);
-        mediaTitle.setHorizontallyScrolling(false);
-        mediaTitle.setIncludeFontPadding(false);
-        mediaMirror.addView(mediaTitle, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(38)));
-
+        mediaTitle.setVisibility(View.GONE);
         mediaDetails = textView("", 13, Color.rgb(175, 175, 175));
-        mediaDetails.setGravity(Gravity.CENTER);
-        mediaDetails.setSingleLine(true);
         mediaDetails.setVisibility(View.GONE);
-        mediaMirror.addView(mediaDetails, new LinearLayout.LayoutParams(-1, dp(22)));
 
         mediaProgressRow = new LinearLayout(this);
-        LinearLayout progressRow = mediaProgressRow;
-        progressRow.setOrientation(LinearLayout.HORIZONTAL);
-        progressRow.setGravity(Gravity.CENTER_VERTICAL);
-        progressRow.setPadding(0, 0, 0, 0);
-        progressRow.setVisibility(View.GONE);
+        mediaProgressRow.setOrientation(LinearLayout.HORIZONTAL);
+        mediaProgressRow.setGravity(Gravity.CENTER_VERTICAL);
+        mediaProgressRow.setPadding(0, 0, 0, 0);
+        mediaProgressRow.setVisibility(View.GONE);
 
         mediaCurrentText = textView("0:00", 12, Color.WHITE);
         mediaCurrentText.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
         mediaCurrentText.setSingleLine(true);
         mediaCurrentText.setIncludeFontPadding(false);
         LinearLayout.LayoutParams currentParams =
-                new LinearLayout.LayoutParams(dp(42), dp(28));
-        currentParams.rightMargin = dp(12);
-        progressRow.addView(mediaCurrentText, currentParams);
+                new LinearLayout.LayoutParams(dp(42), dp(32));
+        currentParams.rightMargin = dp(11);
+        mediaProgressRow.addView(mediaCurrentText, currentParams);
 
         mediaSeekBar = new SeekBar(this);
         mediaSeekBar.setVisibility(View.GONE);
         mediaSeekBar.setPadding(0, 0, 0, 0);
-        // Progress fills visually from left to right.
         mediaSeekBar.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
         mediaSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser && mediaController != null) {
                     PlaybackState st = mediaController.getPlaybackState();
-                    if (st != null) {
-                        long duration = st.getState() == PlaybackState.STATE_NONE ? 0L :
-                                (mediaController.getMetadata() == null ? 0L :
-                                mediaController.getMetadata().getLong(MediaMetadata.METADATA_KEY_DURATION));
+                    if (st != null && mediaController.getMetadata() != null) {
+                        long duration = mediaController.getMetadata()
+                                .getLong(MediaMetadata.METADATA_KEY_DURATION);
                         if (duration > 0) {
                             mediaController.getTransportControls().seekTo(
                                     (duration * progress) / 1000L);
@@ -303,130 +287,72 @@ public class MainActivity extends Activity {
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
-        int halfLineWidth = Math.max(
-                dp(110),
-                Math.min(dp(380),
-                        Math.round(getResources().getDisplayMetrics().widthPixels * 0.50f)));
-        progressRow.addView(mediaSeekBar,
-                new LinearLayout.LayoutParams(halfLineWidth, dp(28)));
+
+        // Reference image: the line occupies about 72% of the screen width.
+        int lineWidth = Math.max(
+                dp(180),
+                Math.round(getResources().getDisplayMetrics().widthPixels * 0.72f));
+        mediaProgressRow.addView(mediaSeekBar,
+                new LinearLayout.LayoutParams(lineWidth, dp(32)));
 
         mediaTotalText = textView("0:00", 12, Color.WHITE);
         mediaTotalText.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         mediaTotalText.setSingleLine(true);
         mediaTotalText.setIncludeFontPadding(false);
         LinearLayout.LayoutParams totalParams =
-                new LinearLayout.LayoutParams(dp(42), dp(28));
-        totalParams.leftMargin = dp(12);
-        progressRow.addView(mediaTotalText, totalParams);
+                new LinearLayout.LayoutParams(dp(42), dp(32));
+        totalParams.leftMargin = dp(11);
+        mediaProgressRow.addView(mediaTotalText, totalParams);
 
-        LinearLayout.LayoutParams progressRowParams =
-                new LinearLayout.LayoutParams(-1, dp(30));
-        progressRowParams.topMargin = dp(8);
-        mediaMirror.addView(progressRow, progressRowParams);
-        mediaProgressText = textView("", 1, Color.TRANSPARENT);
-        mediaProgressText.setVisibility(View.GONE);
+        // 48dp empty space reproduces the vertical gap in the reference.
+        Space controlGap = new Space(this);
+        mediaMirror.addView(mediaProgressRow,
+                new LinearLayout.LayoutParams(-1, dp(32)));
+        mediaMirror.addView(controlGap,
+                new LinearLayout.LayoutParams(1, dp(48)));
 
-        // Row 2: three equal zones, matching the reference layout exactly.
         LinearLayout controls = new LinearLayout(this);
         controls.setOrientation(LinearLayout.HORIZONTAL);
         controls.setGravity(Gravity.CENTER);
         controls.setPadding(0, 0, 0, 0);
 
-        mediaPrev = mediaButton("|◀");
-        mediaPrev.setTextSize(25);
-        mediaPrev.setTypeface(Typeface.DEFAULT);
-        mediaPrev.setTextColor(Color.WHITE);
-        mediaPrev.setBackgroundColor(Color.TRANSPARENT);
-        mediaPrev.setGravity(Gravity.CENTER);
+        int controlWidth = Math.max(
+                dp(240),
+                Math.round(getResources().getDisplayMetrics().widthPixels * 0.74f));
+        LinearLayout.LayoutParams controlAreaParams =
+                new LinearLayout.LayoutParams(controlWidth, dp(64));
+        controlAreaParams.gravity = Gravity.CENTER_HORIZONTAL;
+
+        mediaPrev = new MediaControlView(this, MediaControlView.PREVIOUS);
         mediaPrev.setContentDescription("הקודם");
         mediaPrev.setOnClickListener(v -> sendPrevious());
-        controls.addView(mediaPrev, new LinearLayout.LayoutParams(dp(62), dp(52)));
+        controls.addView(mediaPrev, new LinearLayout.LayoutParams(0, dp(64), 1f));
 
-        mediaPlayPause = mediaButton("▶");
-        mediaPlayPause.setTextSize(26);
-        mediaPlayPause.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
-        mediaPlayPause.setTextColor(Color.WHITE);
-        mediaPlayPause.setGravity(Gravity.CENTER);
-        mediaPlayPause.setPadding(dp(2), 0, 0, 0);
-        mediaPlayPause.setBackground(makePlayPauseBackground());
+        mediaPlayPause = new MediaControlView(this, MediaControlView.PLAY_PAUSE);
+        mediaPlayPause.setContentDescription("נגן");
         mediaPlayPause.setOnClickListener(v -> sendPlayPause());
-        mediaPlayPause.setOnTouchListener((v, event) -> {
-            if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) {
-                v.setAlpha(0.65f);
-            } else if (event.getAction() == android.view.MotionEvent.ACTION_UP ||
-                       event.getAction() == android.view.MotionEvent.ACTION_CANCEL) {
-                v.setAlpha(1f);
-            }
-            return false;
-        });
-        controls.addView(mediaPlayPause, new LinearLayout.LayoutParams(dp(62), dp(54)));
+        controls.addView(mediaPlayPause, new LinearLayout.LayoutParams(0, dp(64), 1f));
 
-        mediaNext = mediaButton("▶|");
-        mediaNext.setTextSize(25);
-        mediaNext.setTypeface(Typeface.DEFAULT);
-        mediaNext.setTextColor(Color.WHITE);
-        mediaNext.setBackgroundColor(Color.TRANSPARENT);
-        mediaNext.setGravity(Gravity.CENTER);
+        mediaNext = new MediaControlView(this, MediaControlView.NEXT);
         mediaNext.setContentDescription("הבא");
         mediaNext.setOnClickListener(v -> sendNext());
-        controls.addView(mediaNext, new LinearLayout.LayoutParams(dp(62), dp(52)));
+        controls.addView(mediaNext, new LinearLayout.LayoutParams(0, dp(64), 1f));
 
-        mediaMirror.addView(controls, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(52)));
+        mediaMirror.addView(controls, controlAreaParams);
 
         lastMediaButton = mediaButton("play\\n⏻");
         lastMediaButton.setTextSize(15);
-        lastMediaButton.setGravity(Gravity.CENTER);
-        lastMediaButton.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
-        lastMediaButton.setTextColor(Color.WHITE);
-        lastMediaButton.setAlpha(0.50f);
-        GradientDrawable lastBg = new GradientDrawable();
-        lastBg.setColor(Color.argb(70, 255, 255, 255));
-        lastBg.setCornerRadius(dp(18));
-        lastBg.setStroke(dp(1), Color.argb(90, 255, 255, 255));
-        lastMediaButton.setBackground(lastBg);
         lastMediaButton.setVisibility(View.GONE);
         lastMediaButton.setOnClickListener(v -> playLastMedia());
-        mediaMirror.addView(lastMediaButton, new LinearLayout.LayoutParams(dp(72), dp(62)));
 
-        int availableWidth = Math.max(
-                dp(1),
-                getResources().getDisplayMetrics().widthPixels - dp(32));
         LinearLayout.LayoutParams mirrorParams =
                 new LinearLayout.LayoutParams(
-                        Math.min(dp(760), availableWidth), LinearLayout.LayoutParams.WRAP_CONTENT);
+                        Math.min(dp(760), Math.max(dp(1),
+                                getResources().getDisplayMetrics().widthPixels - dp(20))),
+                        dp(144));
         mirrorParams.gravity = Gravity.CENTER_HORIZONTAL;
-        mirrorParams.bottomMargin = dp(6);
+        mirrorParams.bottomMargin = dp(14);
         root.addView(mediaMirror, mirrorParams);
-    }
-
-    private android.graphics.drawable.Drawable makePlayPauseBackground() {
-        GradientDrawable bg = new GradientDrawable();
-        bg.setShape(GradientDrawable.OVAL);
-        bg.setColor(Color.argb(150, 48, 48, 48));
-        bg.setStroke(dp(1), Color.argb(105, 255, 255, 255));
-        return bg;
-    }
-
-    private android.graphics.drawable.Drawable makeMediaButtonBackground() {
-        android.graphics.drawable.GradientDrawable bg =
-                new android.graphics.drawable.GradientDrawable();
-        bg.setColor(Color.argb(180, 45,45,45));
-        bg.setCornerRadius(dp(23));
-        bg.setStroke(dp(1), Color.argb(90,255,255,255));
-        return bg;
-    }
-
-    private LinearLayout.LayoutParams flatControlParams() {
-        return new LinearLayout.LayoutParams(dp(54), dp(50));
-    }
-
-    private TextView mediaButton(String symbol) {
-        TextView v = textView(symbol, 24, Color.WHITE);
-        v.setGravity(Gravity.CENTER);
-        v.setClickable(true);
-        v.setTypeface(Typeface.DEFAULT_BOLD);
-        return v;
     }
 
     private void initSettings() {
@@ -447,7 +373,7 @@ public class MainActivity extends Activity {
         e.putBoolean("showHebrew", getBool("showHebrew", true));
         e.putBoolean("showPlayer", getBool("showPlayer", true));
         e.putBoolean("showDetails", getBool("showDetails", false));
-        e.putBoolean("showProgress", getBool("showProgress", false));
+        e.putBoolean("showProgress", getBool("showProgress", true));
         e.putBoolean("showLastMedia", getBool("showLastMedia", false));
         lastTitle = getString("lastTitle", lastTitle);
         lastArtist = getString("lastArtist", lastArtist);
@@ -497,7 +423,7 @@ public class MainActivity extends Activity {
 
     private String formatMs(long ms) {
         long t = Math.max(0, ms / 1000);
-        return String.format(Locale.US, "%02d:%02d", (t / 60) % 60, t % 60);
+        return String.format(Locale.US, "%d:%02d", (t / 60) % 60, t % 60);
     }
 
     private void applySettings() {
@@ -537,8 +463,9 @@ public class MainActivity extends Activity {
             mediaTitle.setTextColor(color);
             mediaDetails.setTextColor(color);
             mediaProgressText.setTextColor(color);
-            mediaSeekBar.setProgressTintList(android.content.res.ColorStateList.valueOf(color));
-            mediaSeekBar.setThumbTintList(android.content.res.ColorStateList.valueOf(color));
+            mediaSeekBar.setProgressTintList(android.content.res.ColorStateList.valueOf(Color.WHITE));
+            mediaSeekBar.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.rgb(105, 105, 105)));
+            mediaSeekBar.setThumbTintList(android.content.res.ColorStateList.valueOf(Color.WHITE));
 
             boolean hasActiveSong = mediaController != null &&
                     mediaController.getMetadata() != null &&
@@ -558,7 +485,7 @@ public class MainActivity extends Activity {
 
             mediaNext.setBackgroundColor(Color.TRANSPARENT);
             mediaPrev.setBackgroundColor(Color.TRANSPARENT);
-            mediaPlayPause.setBackground(makePlayPauseBackground());
+            mediaPlayPause.setBackgroundColor(Color.TRANSPARENT);
             if (lastMediaButton != null) {
                 lastMediaButton.setText("play\n⏻");
                 lastMediaButton.setTextColor(Color.WHITE);
@@ -611,7 +538,7 @@ public class MainActivity extends Activity {
                     new String[]{"קטן","בינוני","גדול","גדול מאוד"},
                     new String[]{"14","17","20","23"}, "playerSize");
             addCheck(box, "פרטי אמן (כשקיים בלבד)", "showDetails", false);
-            addCheck(box, "שורת מיקום + זמן", "showProgress", false);
+            addCheck(box, "שורת מיקום + זמן", "showProgress", true);
             addCheck(box, "לחצן השמעה אחרונה כשאין שיר פעיל", "showLastMedia", false);
 
             addSection(box, "מסגרת נגן");
@@ -1143,8 +1070,10 @@ public class MainActivity extends Activity {
             }
             mediaPlayPause.setVisibility(View.VISIBLE);
             lastMediaButton.setVisibility(View.GONE);
-            mediaPlayPause.setText(
-                    playback == PlaybackState.STATE_PLAYING ? "Ⅱ" : "▶");
+            if (mediaPlayPause instanceof MediaControlView) {
+                ((MediaControlView) mediaPlayPause).setPlaying(
+                        playback == PlaybackState.STATE_PLAYING);
+            }
             mediaPlayPause.setContentDescription(
                     playback == PlaybackState.STATE_PLAYING ? "השהה" : "נגן");
 
@@ -1327,6 +1256,92 @@ public class MainActivity extends Activity {
                 mediaController.getTransportControls().skipToNext();
             }
         } catch (Throwable ignored) {
+        }
+    }
+
+    private static class MediaControlView extends TextView {
+        static final int PREVIOUS = 0;
+        static final int PLAY_PAUSE = 1;
+        static final int NEXT = 2;
+
+        private final int kind;
+        private boolean playing = false;
+
+        MediaControlView(android.content.Context context, int kind) {
+            super(context);
+            this.kind = kind;
+            setWillNotDraw(false);
+            setBackgroundColor(Color.TRANSPARENT);
+            setTextColor(Color.TRANSPARENT);
+            setGravity(Gravity.CENTER);
+            setClickable(true);
+        }
+
+        void setPlaying(boolean value) {
+            playing = value;
+            invalidate();
+        }
+
+        @Override protected void onDraw(android.graphics.Canvas canvas) {
+            super.onDraw(canvas);
+            float cx = getWidth() * 0.5f;
+            float cy = getHeight() * 0.5f;
+            float unit = Math.min(getWidth(), getHeight());
+
+            android.graphics.Paint p = new android.graphics.Paint(
+                    android.graphics.Paint.ANTI_ALIAS_FLAG);
+            p.setColor(Color.WHITE);
+            p.setStyle(android.graphics.Paint.Style.FILL);
+
+            if (kind == PREVIOUS) {
+                float barX = cx - unit * 0.15f;
+                float barW = unit * 0.075f;
+                float h = unit * 0.58f;
+                canvas.drawRect(barX, cy - h / 2f, barX + barW, cy + h / 2f, p);
+
+                android.graphics.Path tri = new android.graphics.Path();
+                float left = cx - unit * 0.27f;
+                float right = cx - unit * 0.02f;
+                tri.moveTo(right, cy - h / 2f);
+                tri.lineTo(left, cy);
+                tri.lineTo(right, cy + h / 2f);
+                tri.close();
+                canvas.drawPath(tri, p);
+            } else if (kind == NEXT) {
+                float barX = cx + unit * 0.075f;
+                float barW = unit * 0.075f;
+                float h = unit * 0.58f;
+                canvas.drawRect(barX, cy - h / 2f, barX + barW, cy + h / 2f, p);
+
+                android.graphics.Path tri = new android.graphics.Path();
+                float left = cx - unit * 0.02f;
+                float right = cx + unit * 0.27f;
+                tri.moveTo(left, cy - h / 2f);
+                tri.lineTo(right, cy);
+                tri.lineTo(left, cy + h / 2f);
+                tri.close();
+                canvas.drawPath(tri, p);
+            } else {
+                if (playing) {
+                    float h = unit * 0.62f;
+                    float barW = unit * 0.13f;
+                    float gap = unit * 0.11f;
+                    canvas.drawRect(cx - gap / 2f - barW, cy - h / 2f,
+                            cx - gap / 2f, cy + h / 2f, p);
+                    canvas.drawRect(cx + gap / 2f, cy - h / 2f,
+                            cx + gap / 2f + barW, cy + h / 2f, p);
+                } else {
+                    android.graphics.Path tri = new android.graphics.Path();
+                    float left = cx - unit * 0.18f;
+                    float right = cx + unit * 0.22f;
+                    float h = unit * 0.58f;
+                    tri.moveTo(left, cy - h / 2f);
+                    tri.lineTo(right, cy);
+                    tri.lineTo(left, cy + h / 2f);
+                    tri.close();
+                    canvas.drawPath(tri, p);
+                }
+            }
         }
     }
 
