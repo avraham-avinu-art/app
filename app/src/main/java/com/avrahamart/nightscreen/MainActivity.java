@@ -104,6 +104,7 @@ public class MainActivity extends Activity {
                     android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             hideSystemUi();
             buildUi();
+            applySettings();
             updateClock();
             scheduleAutoOff();
         } catch (Throwable t) {
@@ -147,37 +148,39 @@ public class MainActivity extends Activity {
         root.setBackgroundColor(Color.BLACK);
         root.setPadding(dp(10), dp(6), dp(10), dp(4));
 
-        LinearLayout top = new LinearLayout(this);
-        top.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        FrameLayout stage = new FrameLayout(this);
+        stage.setBackgroundColor(Color.BLACK);
+        root.addView(stage, new LinearLayout.LayoutParams(-1, 0, 1f));
+
         settingsButton = textView("⋮", 22, Color.WHITE);
         settingsButton.setAlpha(0.20f);
         settingsButton.setGravity(Gravity.CENTER);
         settingsButton.setContentDescription("הגדרות");
         settingsButton.setOnClickListener(v -> showSettings());
-        LinearLayout.LayoutParams settingsParams = new LinearLayout.LayoutParams(dp(30), dp(34));
-        settingsParams.rightMargin = -dp(4);
-        top.addView(settingsButton, settingsParams);
-        root.addView(top, new LinearLayout.LayoutParams(-1, dp(34)));
-
-        FrameLayout stage = new FrameLayout(this);
-        stage.setBackgroundColor(Color.BLACK);
-        root.addView(stage, new LinearLayout.LayoutParams(-1, 0, 1f));
+        FrameLayout.LayoutParams settingsParams = new FrameLayout.LayoutParams(
+                dp(30), dp(34), Gravity.TOP | Gravity.RIGHT);
+        settingsParams.rightMargin = dp(2);
+        settingsParams.topMargin = 0;
+        stage.addView(settingsButton, settingsParams);
 
         LinearLayout clockBlock = new LinearLayout(this);
         clockBlock.setOrientation(LinearLayout.VERTICAL);
         clockBlock.setGravity(Gravity.CENTER_HORIZONTAL);
 
-        timeText = textView("--:--", 82, Color.rgb(247, 247, 247));
+        timeText = textView("--:--", getInt("clockDateSize", 48), Color.rgb(247, 247, 247));
         timeText.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
         timeText.setGravity(Gravity.CENTER);
         timeText.setIncludeFontPadding(true);
-        clockBlock.addView(timeText, new LinearLayout.LayoutParams(-1, dp(96)));
+        int initialClockSize = getInt("clockDateSize", 48);
+        int initialClockHeight = Math.max(dp(62), dp(initialClockSize + 20));
+        clockBlock.addView(timeText, new LinearLayout.LayoutParams(-1, initialClockHeight));
 
         gregorianText = textView("", 22, dateTextColor);
         gregorianText.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         gregorianText.setGravity(Gravity.CENTER);
         gregorianText.setIncludeFontPadding(true);
-        clockBlock.addView(gregorianText, new LinearLayout.LayoutParams(-1, dp(32)));
+        int initialDateHeight = Math.max(dp(24), dp(Math.round(initialClockSize * 0.45f)));
+        clockBlock.addView(gregorianText, new LinearLayout.LayoutParams(-1, initialDateHeight));
 
         hebrewText = textView("", 22, dateTextColor);
         hebrewText.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
@@ -185,9 +188,10 @@ public class MainActivity extends Activity {
         hebrewText.setTextDirection(View.TEXT_DIRECTION_ANY_RTL);
         hebrewText.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
         hebrewText.setIncludeFontPadding(true);
-        clockBlock.addView(hebrewText, new LinearLayout.LayoutParams(-1, dp(32)));
+        clockBlock.addView(hebrewText, new LinearLayout.LayoutParams(-1, initialDateHeight));
 
-        stage.addView(clockBlock, new FrameLayout.LayoutParams(-1, dp(160), Gravity.TOP | Gravity.CENTER_HORIZONTAL));
+        int initialClockBlockHeight = initialClockHeight + initialDateHeight * 2;
+        stage.addView(clockBlock, new FrameLayout.LayoutParams(-1, initialClockBlockHeight, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
 
         LinearLayout mediaHolder = new LinearLayout(this);
         mediaHolder.setOrientation(LinearLayout.VERTICAL);
@@ -197,7 +201,10 @@ public class MainActivity extends Activity {
         buildMediaSetup(mediaHolder);
         buildSystemMediaMirror(mediaHolder);
 
-        stage.post(() -> updateScreenPositions(stage, clockBlock, mediaHolder));
+        stage.post(() -> {
+            applySettings();
+            updateScreenPositions(stage, clockBlock, mediaHolder);
+        });
         setContentView(root);
     }
 
@@ -217,7 +224,7 @@ public class MainActivity extends Activity {
             } else if ("middle".equals(clockPos)) {
                 cp.topMargin = Math.max(0, Math.round(h * 0.50f - clockH / 2f));
             } else {
-                cp.topMargin = dp(2);
+                cp.topMargin = 0;
             }
             clockBlock.setLayoutParams(cp);
 
@@ -530,6 +537,25 @@ public class MainActivity extends Activity {
         gregorianText.setTypeface(tf);
         hebrewText.setTypeface(tf);
         timeText.setTypeface(tf);
+
+        View clockParent = (View) timeText.getParent();
+        if (clockParent instanceof LinearLayout) {
+            LinearLayout cb = (LinearLayout) clockParent;
+            int clockH = Math.max(dp(62), dp(clockDateSize + 20));
+            int dateH = Math.max(dp(24), dp(Math.round(clockDateSize * 0.45f)));
+            LinearLayout.LayoutParams tp = (LinearLayout.LayoutParams) timeText.getLayoutParams();
+            tp.height = clockH;
+            timeText.setLayoutParams(tp);
+            LinearLayout.LayoutParams gp = (LinearLayout.LayoutParams) gregorianText.getLayoutParams();
+            gp.height = dateH;
+            gregorianText.setLayoutParams(gp);
+            LinearLayout.LayoutParams hp = (LinearLayout.LayoutParams) hebrewText.getLayoutParams();
+            hp.height = dateH;
+            hebrewText.setLayoutParams(hp);
+            FrameLayout.LayoutParams cp = (FrameLayout.LayoutParams) cb.getLayoutParams();
+            cp.height = clockH + dateH * 2;
+            cb.setLayoutParams(cp);
+        }
 
         if (mediaTitle != null) {
             mediaTitle.setTypeface(tf);
@@ -1018,6 +1044,22 @@ public class MainActivity extends Activity {
             if (state != null && state.getState() == PlaybackState.STATE_PAUSED) {
                 return controller;
             }
+        }
+
+        // Some players create their MediaSession before playback starts.
+        // Keep the session if it already exposes a real title, so the mirror
+        // can appear when playback begins after the app was opened.
+        for (MediaController controller : sessions) {
+            try {
+                MediaMetadata metadata = controller.getMetadata();
+                String title = metadata == null ? null :
+                        metadata.getString(MediaMetadata.METADATA_KEY_TITLE);
+                if (title == null || title.trim().isEmpty()) {
+                    title = metadata == null ? null :
+                            metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE);
+                }
+                if (title != null && !title.trim().isEmpty()) return controller;
+            } catch (Throwable ignored) {}
         }
         return null;
     }
