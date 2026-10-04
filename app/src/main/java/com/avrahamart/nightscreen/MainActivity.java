@@ -808,7 +808,7 @@ public class MainActivity extends Activity {
                     if (lastMediaButton != null) lastMediaButton.setVisibility(View.GONE);
                     if (mediaPlayPause != null) {
                         mediaPlayPause.setVisibility(View.VISIBLE);
-                        mediaPlayPause.setText("▶");
+                        mediaPlayPause.setImageResource(R.drawable.media_play);
                     }
                     renderMediaMirror();
                     return;
@@ -831,7 +831,7 @@ public class MainActivity extends Activity {
             if (lastMediaButton != null) lastMediaButton.setVisibility(View.GONE);
             if (mediaPlayPause != null) {
                 mediaPlayPause.setVisibility(View.VISIBLE);
-                mediaPlayPause.setText("Ⅱ");
+                mediaPlayPause.setImageResource(R.drawable.media_pause);
             }
             renderMediaMirror();
         } catch (Throwable ignored) {
