@@ -251,7 +251,7 @@ public class MainActivity extends Activity {
             } else {
                 mp.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
                 int mediaH = Math.max(0, mediaHolder.getMeasuredHeight());
-                mp.topMargin = Math.max(0, Math.round(h * (5f / 6f) - mediaH / 2f));
+                mp.topMargin = Math.max(0, Math.round(h * 0.66f - mediaH / 2f));
                 mp.bottomMargin = 0;
                 mp.height = FrameLayout.LayoutParams.WRAP_CONTENT;
             }
@@ -687,14 +687,14 @@ public class MainActivity extends Activity {
             LinearLayout box = new LinearLayout(this);
             box.setOrientation(LinearLayout.VERTICAL);
             box.setGravity(Gravity.CENTER_HORIZONTAL);
-            box.setPadding(dp(8), dp(2), dp(8), dp(6));
+            box.setPadding(dp(12), dp(4), dp(12), dp(8));
             box.setBackgroundColor(Color.rgb(248, 249, 251));
             scroll.addView(box);
 
-            TextView h = textView("הגדרות", 25, Color.rgb(25, 28, 35));
+            TextView h = textView("הגדרות", 22, Color.rgb(25, 28, 35));
             h.setGravity(Gravity.CENTER);
             h.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
-            box.addView(h, new LinearLayout.LayoutParams(-1, dp(38)));
+            box.addView(h, new LinearLayout.LayoutParams(-1, dp(34)));
 
             addSection(box, "תצוגת שעון ותאריך");
             addSpinner(box, "גודל שעה ותאריך",
@@ -728,8 +728,8 @@ public class MainActivity extends Activity {
                     new String[]{"קטן","בינוני","גדול","גדול מאוד"},
                     new String[]{"14","17","20","23"}, "playerSize");
             addSpinner(box, "מיקום הנגן",
-                    new String[]{"הכי למטה","בשליש התחתון"},
-                    new String[]{"bottom","lower"}, "playerPosition");
+                    new String[]{"בשליש התחתון","הכי למטה"},
+                    new String[]{"lower","bottom"}, "playerPosition");
             addCheck(box, "פרטי אמן (כשקיים בלבד)", "showDetails", getBool("showDetails", true));
             addCheck(box, "שורת מיקום + זמן", "showProgress", true);
 
