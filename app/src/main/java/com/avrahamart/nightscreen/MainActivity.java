@@ -177,7 +177,7 @@ public class MainActivity extends Activity {
         clockBlock.setOrientation(LinearLayout.VERTICAL);
         clockBlock.setGravity(Gravity.CENTER_HORIZONTAL);
 
-        timeText = textView("--:--", getInt("clockDateSize", 48), Color.rgb(247, 247, 247));
+        timeText = textView("--:--", getInt("clockDateSize", 72), Color.rgb(247, 247, 247));
         timeText.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
         timeText.setGravity(Gravity.CENTER);
         timeText.setIncludeFontPadding(true);
@@ -241,7 +241,7 @@ public class MainActivity extends Activity {
 
             FrameLayout.LayoutParams mp = (FrameLayout.LayoutParams) mediaHolder.getLayoutParams();
             int mediaH = mediaHolder.getMeasuredHeight();
-            mp.topMargin = Math.max(0, h - mediaH);
+            mp.topMargin = Math.max(0, h - mediaH - dp(2));
             mp.height = mediaH;
             mediaHolder.setLayoutParams(mp);
         } catch (Throwable ignored) {}
@@ -434,7 +434,7 @@ public class MainActivity extends Activity {
 
         e.putInt("fontColor", getInt("fontColor", dateTextColor));
         e.putInt("fontSize", getInt("fontSize", 17));
-        e.putInt("clockDateSize", getInt("clockDateSize", 48));
+        e.putInt("clockDateSize", getInt("clockDateSize", 72));
         e.putInt("playerSize", getInt("playerSize", 17));
         e.putInt("fontWeight", getInt("fontWeight", 1));
         e.putString("fontFamily", getString("fontFamily", "sans-serif"));
@@ -464,7 +464,7 @@ public class MainActivity extends Activity {
         e.putInt("buttonColor", getInt("buttonColor", Color.rgb(45,45,45)));
         e.putInt("buttonBorderColor", getInt("buttonBorderColor", Color.rgb(110,110,110)));
         e.putString("screenSaverDuration", getString("screenSaverDuration", "0"));
-        e.putString("clockDatePosition", getString("clockDatePosition", "top"));
+        e.putString("clockDatePosition", getString("clockDatePosition", "upper"));
         e.putString("playerPosition", getString("playerPosition", "bottom"));
         e.commit();
     }
