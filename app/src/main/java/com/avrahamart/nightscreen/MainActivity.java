@@ -688,29 +688,26 @@ public class MainActivity extends Activity {
 
             ScrollView scroll = new ScrollView(this);
             scroll.setFillViewport(true);
+            scroll.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
             LinearLayout box = new LinearLayout(this);
             box.setOrientation(LinearLayout.VERTICAL);
             box.setGravity(Gravity.CENTER_HORIZONTAL);
-            box.setPadding(dp(12), dp(4), dp(12), dp(8));
+            box.setPadding(dp(12), dp(8), dp(12), dp(12));
             box.setBackgroundColor(Color.rgb(248, 249, 251));
             scroll.addView(box);
 
             TextView h = textView("הגדרות", 22, Color.rgb(25, 28, 35));
             h.setGravity(Gravity.CENTER);
             h.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
-            box.addView(h, new LinearLayout.LayoutParams(-1, dp(34)));
+            box.addView(h, new LinearLayout.LayoutParams(-1, dp(40)));
 
-            addSection(box, "תצוגת שעון ותאריך");
-            addSpinner(box, "גודל שעה ותאריך",
-                    new String[]{"קטן","בינוני","גדול","גדול מאוד"},
-                    new String[]{"38","48","60","72"}, "clockDateSize");
-            addSpinner(box, "מיקום שעה ותאריך",
-                    new String[]{"הכי למעלה","ברבע העליון","באמצע המסך"},
-                    new String[]{"top","upper","middle"}, "clockDatePosition");
-            addSpinner(box, "זמן פעילות השומר מסך",
-                    new String[]{"ללא כיבוי","1 דקות","5 דקות"},
-                    new String[]{"0","1","5"}, "screenSaverDuration");
+            // 1. תצוגת במסך
+            addSection(box, "תצוגת במסך");
+            addCheck(box, "תאריך עברי", "showHebrew", true);
+            addCheck(box, "תאריך לועזי", "showGregorian", true);
+            addCheck(box, "נגן", "showPlayer", true);
 
+            // 2. גופן
             addSection(box, "גופן");
             addSpinner(box, "צבע",
                     new String[]{"לבן","אפור בהיר","אפור","כחול עדין"},
@@ -722,22 +719,31 @@ public class MainActivity extends Activity {
                     new String[]{"Sans","Monospace","Serif"},
                     new String[]{"sans-serif","monospace","serif"}, "fontFamily");
 
-            addSection(box, "תצוגה");
-            addCheck(box, "תאריך לועזי", "showGregorian", true);
-            addCheck(box, "תאריך עברי", "showHebrew", true);
-            addCheck(box, "נגן", "showPlayer", true);
+            // 3. תצוגת שעון ותאריך
+            addSection(box, "תצוגת שעון ותאריך");
+            addSpinner(box, "גודל",
+                    new String[]{"קטן","בינוני","גדול","גדול מאוד"},
+                    new String[]{"38","48","60","72"}, "clockDateSize");
+            addSpinner(box, "מיקום",
+                    new String[]{"הכי למעלה","ברבע העליון","באמצע המסך"},
+                    new String[]{"top","upper","middle"}, "clockDatePosition");
+            addSpinner(box, "זמן פעילות",
+                    new String[]{"ללא כיבוי","1 דקות","5 דקות"},
+                    new String[]{"0","1","5"}, "screenSaverDuration");
 
-            addSection(box, "נגן");
-            addSpinner(box, "גודל נגן",
+            // 4. תצוגת הנגן
+            addSection(box, "תצוגת הנגן");
+            addCheck(box, "פרטי אמן", "showDetails", getBool("showDetails", true));
+            addCheck(box, "שורת מיקום + זמן", "showProgress", true);
+            addSpinner(box, "גודל הנגן",
                     new String[]{"קטן","בינוני","גדול","גדול מאוד"},
                     new String[]{"14","17","20","23"}, "playerSize");
             addSpinner(box, "מיקום הנגן",
                     new String[]{"בשליש התחתון","הכי למטה"},
                     new String[]{"lower","bottom"}, "playerPosition");
-            addCheck(box, "פרטי אמן (כשקיים בלבד)", "showDetails", getBool("showDetails", true));
-            addCheck(box, "שורת מיקום + זמן", "showProgress", true);
 
-            addSection(box, "מסגרת נגן");
+            // 5. מסגרת לנגן
+            addSection(box, "מסגרת לנגן");
             addCheck(box, "הצג מסגרת", "frameEnabled", false);
             addSpinner(box, "צבע מסגרת",
                     new String[]{"לבן","אפור","אפור בהיר","כסף"},
@@ -750,16 +756,21 @@ public class MainActivity extends Activity {
                     new String[]{"0","10","20"}, "frameRadius");
 
             Button done = new Button(this);
-            done.setText("סיום");
+            done.setText("סיום ושמירה");
             done.setTextColor(Color.WHITE);
             done.setTextSize(15);
+            done.setMinWidth(0);
+            done.setMinHeight(0);
+            done.setPadding(dp(22), 0, dp(22), 0);
             GradientDrawable doneBg = new GradientDrawable();
             doneBg.setColor(Color.rgb(55, 95, 145));
             doneBg.setCornerRadius(dp(12));
             done.setBackground(doneBg);
-            LinearLayout.LayoutParams doneParams = new LinearLayout.LayoutParams(dp(280), dp(40));
+            LinearLayout.LayoutParams doneParams =
+                    new LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.WRAP_CONTENT, dp(46));
             doneParams.gravity = Gravity.CENTER_HORIZONTAL;
-            doneParams.topMargin = dp(5);
+            doneParams.topMargin = dp(4);
             box.addView(done, doneParams);
 
             AlertDialog dialog = new AlertDialog.Builder(this).setView(scroll).create();
@@ -775,14 +786,32 @@ public class MainActivity extends Activity {
 
             dialog.show();
             if (dialog.getWindow() != null) {
-                dialog.getWindow().setBackgroundDrawableResource(android.R.color.white);
-                dialog.getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN);
-                dialog.getWindow().getDecorView().setSystemUiVisibility(
-                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
-                dialog.getWindow().setDimAmount(0.45f);
-                dialog.getWindow().setLayout(
-                        Math.min(getResources().getDisplayMetrics().widthPixels - dp(16), dp(600)),
-                        Math.min(getResources().getDisplayMetrics().heightPixels - dp(16), dp(820)));
+                android.view.Window window = dialog.getWindow();
+                window.setBackgroundDrawableResource(android.R.color.white);
+                window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN);
+                window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
+                window.setStatusBarColor(Color.BLACK);
+                window.setNavigationBarColor(Color.BLACK);
+
+                // Keep the dialog out of immersive mode so the system can receive
+                // the swipe from the top edge and open the notification shade.
+                window.getDecorView().setSystemUiVisibility(0);
+                if (Build.VERSION.SDK_INT >= 30) {
+                    android.view.WindowInsetsController controller =
+                            window.getDecorView().getWindowInsetsController();
+                    if (controller != null) {
+                        controller.show(android.view.WindowInsets.Type.statusBars()
+                                | android.view.WindowInsets.Type.navigationBars());
+                        controller.setSystemBarsBehavior(
+                                android.view.WindowInsetsController.BEHAVIOR_DEFAULT);
+                    }
+                }
+
+                int width = Math.min(
+                        getResources().getDisplayMetrics().widthPixels - dp(16), dp(600));
+                int height = Math.min(
+                        getResources().getDisplayMetrics().heightPixels - dp(16), dp(820));
+                window.setLayout(width, height);
             }
         } catch (Throwable t) {
             showFatalError(t);
