@@ -881,7 +881,7 @@ public class MainActivity extends Activity {
 
                             e.commit();
                             applySettings();
-                            handler.post(this::refreshSystemMediaMirror);
+                            handler.post(MainActivity.this::refreshSystemMediaMirror);
                         } catch (Throwable ignored) {
                         }
                     }
