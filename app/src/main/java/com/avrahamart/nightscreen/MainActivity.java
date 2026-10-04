@@ -919,7 +919,6 @@ public class MainActivity extends Activity {
                     mediaNext.setVisibility(View.GONE);
                     mediaPrev.setVisibility(View.GONE);
                     mediaPlayPause.setVisibility(View.GONE);
-                    lastMediaButton.setVisibility(View.VISIBLE);
                     applySettings();
                 }
                 return;
@@ -1067,8 +1066,7 @@ public class MainActivity extends Activity {
                 mediaSeekBar.setProgress((int)Math.min(1000L, (position * 1000L) / duration));
             }
             mediaPlayPause.setVisibility(View.VISIBLE);
-            lastMediaButton.setVisibility(View.GONE);
-            boolean isPlaying = playback == PlaybackState.STATE_PLAYING;
+                boolean isPlaying = playback == PlaybackState.STATE_PLAYING;
             mediaPlayPause.setImageResource(
                     isPlaying ? R.drawable.media_pause : R.drawable.media_play);
             mediaPlayPause.setContentDescription(isPlaying ? "השהה" : "נגן");
