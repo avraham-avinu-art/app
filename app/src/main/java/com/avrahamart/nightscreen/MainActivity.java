@@ -156,7 +156,7 @@ public class MainActivity extends Activity {
         stage.setBackgroundColor(Color.BLACK);
         root.addView(stage, new LinearLayout.LayoutParams(-1, 0, 1f));
 
-        settingsButton = textView("⋮", 22, Color.WHITE);
+        settingsButton = textView("⚙", 20, Color.WHITE);
         settingsButton.setAlpha(0.20f);
         settingsButton.setGravity(Gravity.CENTER);
         settingsButton.setContentDescription("הגדרות");
@@ -467,7 +467,7 @@ public class MainActivity extends Activity {
         e.putString("screenSaverDuration", getString("screenSaverDuration", "0"));
         e.putString("clockDatePosition", getString("clockDatePosition", "top"));
         e.putString("playerPosition", getString("playerPosition", "bottom"));
-        e.apply();
+        e.commit();
     }
 
     private boolean getBool(String key, boolean def) {
@@ -992,19 +992,25 @@ public class MainActivity extends Activity {
             ComponentName listener = new ComponentName(
                     this, SystemMediaNotificationListener.class);
 
-            // Prefer the session Android is currently routing media-key commands to.
+            // Prefer the media-key session only when it is a real media session.
+            // Some Android versions keep a stale system session here with no title;
+            // in that case we must fall back to the complete active-session list.
             MediaController selected = null;
             if (Build.VERSION.SDK_INT >= 33) {
                 try {
                     MediaSession.Token token = mediaSessionManager.getMediaKeyEventSession();
                     if (token != null) {
-                        selected = new MediaController(this, token);
+                        MediaController candidate = new MediaController(this, token);
+                        if (hasUsableMediaSession(candidate)) {
+                            selected = candidate;
+                        }
                     }
                 } catch (Throwable ignored) {
                 }
             }
 
-            // Fallback to the complete active-session list, already ordered by Android.
+            // Always inspect active sessions when the preferred session is stale,
+            // so playback started after app launch is detected on the next refresh.
             if (selected == null) {
                 List<MediaController> sessions =
                         mediaSessionManager.getActiveSessions(listener);
@@ -1030,6 +1036,31 @@ public class MainActivity extends Activity {
         } catch (Throwable ignored) {
             hideMediaMirror();
         }
+    }
+
+    private boolean hasUsableMediaSession(MediaController controller) {
+        if (controller == null) return false;
+        try {
+            PlaybackState state = controller.getPlaybackState();
+            MediaMetadata metadata = controller.getMetadata();
+            if (state != null) {
+                int s = state.getState();
+                if (s == PlaybackState.STATE_PLAYING ||
+                        s == PlaybackState.STATE_BUFFERING ||
+                        s == PlaybackState.STATE_PAUSED) {
+                    return true;
+                }
+            }
+            if (metadata != null) {
+                String title = metadata.getString(MediaMetadata.METADATA_KEY_TITLE);
+                if (title == null || title.trim().isEmpty()) {
+                    title = metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE);
+                }
+                return title != null && !title.trim().isEmpty();
+            }
+        } catch (Throwable ignored) {
+        }
+        return false;
     }
 
     private MediaController selectBestSession(List<MediaController> sessions) {
