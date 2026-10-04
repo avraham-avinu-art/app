@@ -261,7 +261,7 @@ public class MainActivity extends Activity {
         mediaProgressRow.setOrientation(LinearLayout.HORIZONTAL);
         mediaProgressRow.setGravity(Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL);
         mediaProgressRow.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
-        mediaProgressRow.setPadding(dp(24), 0, dp(24), 0);
+        mediaProgressRow.setPadding(dp(10), 0, dp(10), 0);
         mediaProgressRow.setVisibility(View.GONE);
 
         mediaCurrentText = textView("0:00", 12, Color.WHITE);
@@ -270,7 +270,7 @@ public class MainActivity extends Activity {
         mediaCurrentText.setIncludeFontPadding(false);
         LinearLayout.LayoutParams currentParams =
                 new LinearLayout.LayoutParams(dp(48), dp(32));
-        currentParams.rightMargin = dp(26);
+        currentParams.rightMargin = dp(10);
         mediaProgressRow.addView(mediaCurrentText, currentParams);
 
         mediaSeekBar = new SeekBar(this);
@@ -308,22 +308,22 @@ public class MainActivity extends Activity {
         mediaTotalText.setIncludeFontPadding(false);
         LinearLayout.LayoutParams totalParams =
                 new LinearLayout.LayoutParams(dp(48), dp(32));
-        totalParams.leftMargin = dp(26);
+        totalParams.leftMargin = dp(10);
         mediaProgressRow.addView(mediaTotalText, totalParams);
 
         // Tight vertical gap matching the supplied reference image.
         View controlGap = new View(this);
-        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(-1, dp(22));
+        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(-1, dp(30));
         titleParams.topMargin = dp(2);
         mediaMirror.addView(mediaTitle, titleParams);
-        LinearLayout.LayoutParams detailsParams = new LinearLayout.LayoutParams(-1, dp(18));
+        LinearLayout.LayoutParams detailsParams = new LinearLayout.LayoutParams(-1, dp(24));
         mediaMirror.addView(mediaDetails, detailsParams);
 
         LinearLayout.LayoutParams progressParams = new LinearLayout.LayoutParams(-1, dp(32));
-        progressParams.topMargin = dp(4);
+        progressParams.topMargin = dp(2);
         mediaMirror.addView(mediaProgressRow, progressParams);
         mediaMirror.addView(controlGap,
-                new LinearLayout.LayoutParams(1, dp(34)));
+                new LinearLayout.LayoutParams(1, dp(8)));
 
         FrameLayout controls = new FrameLayout(this);
         controls.setPadding(0, 0, 0, 0);
@@ -369,7 +369,7 @@ public class MainActivity extends Activity {
                 new LinearLayout.LayoutParams(
                         Math.min(dp(760), Math.max(dp(1),
                                 getResources().getDisplayMetrics().widthPixels - dp(20))),
-                        dp(158));
+                        dp(142));
         mirrorParams.gravity = Gravity.CENTER_HORIZONTAL;
         mirrorParams.topMargin = dp(28);
         mirrorParams.bottomMargin = dp(14);
