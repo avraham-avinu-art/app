@@ -558,7 +558,7 @@ public class MainActivity extends Activity {
 
             mediaNext.setBackgroundColor(Color.TRANSPARENT);
             mediaPrev.setBackgroundColor(Color.TRANSPARENT);
-            mediaPlayPause.setBackgroundColor(Color.TRANSPARENT);
+            mediaPlayPause.setBackground(makePlayPauseBackground());
             if (lastMediaButton != null) {
                 lastMediaButton.setText("play\n⏻");
                 lastMediaButton.setTextColor(Color.WHITE);
