@@ -334,102 +334,314 @@ public class MainActivity extends Activity {
     }
 
     private void initSettings() {
-        prefs.edit().putInt("fontColor", prefs.getInt("fontColor", dateTextColor))
-                .putInt("fontSize", prefs.getInt("fontSize", 17))
-                .putInt("fontWeight", prefs.getInt("fontWeight", 1))
-                .putString("fontFamily", prefs.getString("fontFamily", "sans-serif")).apply();
+        if (prefs == null) {
+            prefs = getSharedPreferences("settings", MODE_PRIVATE);
+        }
+
+        SharedPreferences.Editor e = prefs.edit();
+
+        e.putInt("fontColor", getInt("fontColor", dateTextColor));
+        e.putInt("fontSize", getInt("fontSize", 17));
+        e.putInt("fontWeight", getInt("fontWeight", 1));
+        e.putString("fontFamily", getString("fontFamily", "sans-serif"));
+
+        e.putBoolean("showGregorian", getBool("showGregorian", true));
+        e.putBoolean("showHebrew", getBool("showHebrew", true));
+        e.putBoolean("showPlayer", getBool("showPlayer", true));
+        e.putBoolean("showDetails", getBool("showDetails", false));
+        e.putBoolean("showProgress", getBool("showProgress", false));
+        e.putBoolean("showLastMedia", getBool("showLastMedia", false));
+
+        e.putBoolean("frameEnabled", getBool("frameEnabled", false));
+        e.putInt("frameColor", getInt("frameColor", Color.WHITE));
+        e.putInt("frameWidth", getInt("frameWidth", 1));
+        e.putInt("frameRadius", getInt("frameRadius", 10));
+        e.putInt("buttonColor", getInt("buttonColor", Color.rgb(45,45,45)));
+        e.putInt("buttonBorderColor", getInt("buttonBorderColor", Color.rgb(110,110,110)));
+        e.apply();
     }
-    private boolean getBool(String k, boolean d) { return prefs != null && prefs.getBoolean(k,d); }
-    private int getInt(String k, int d) { return prefs == null ? d : prefs.getInt(k,d); }
+
+    private boolean getBool(String key, boolean def) {
+        if (prefs == null) return def;
+        try {
+            Object value = prefs.getAll().get(key);
+            if (value instanceof Boolean) return (Boolean) value;
+            if (value instanceof String) return Boolean.parseBoolean((String) value);
+            if (value instanceof Number) return ((Number) value).intValue() != 0;
+        } catch (Throwable ignored) {
+        }
+        return def;
+    }
+
+    private int getInt(String key, int def) {
+        if (prefs == null) return def;
+        try {
+            Object value = prefs.getAll().get(key);
+            if (value instanceof Number) return ((Number) value).intValue();
+            if (value instanceof String) return Integer.parseInt((String) value);
+            if (value instanceof Boolean) return ((Boolean) value) ? 1 : 0;
+        } catch (Throwable ignored) {
+        }
+        return def;
+    }
+
+    private String getString(String key, String def) {
+        if (prefs == null) return def;
+        try {
+            Object value = prefs.getAll().get(key);
+            return value == null ? def : String.valueOf(value);
+        } catch (Throwable ignored) {
+            return def;
+        }
+    }
+
     private String formatMs(long ms) {
-        long t=Math.max(0,ms/1000); return String.format(Locale.US,"%02d:%02d",(t/60)%60,t%60);
+        long t = Math.max(0, ms / 1000);
+        return String.format(Locale.US, "%02d:%02d", (t / 60) % 60, t % 60);
     }
+
     private void applySettings() {
-        if (prefs==null || gregorianText==null) return;
-        int color=getInt("fontColor",dateTextColor), size=getInt("fontSize",17), weight=getInt("fontWeight",1);
-        Typeface tf=Typeface.create(prefs.getString("fontFamily","sans-serif"),weight==2?Typeface.BOLD:Typeface.NORMAL);
-        gregorianText.setVisibility(getBool("showGregorian",true)?View.VISIBLE:View.GONE);
-        hebrewText.setVisibility(getBool("showHebrew",true)?View.VISIBLE:View.GONE);
-        gregorianText.setTextColor(color); hebrewText.setTextColor(color);
-        gregorianText.setTextSize(size); hebrewText.setTextSize(size);
-        gregorianText.setTypeface(tf); hebrewText.setTypeface(tf);
-        if(mediaTitle!=null){
-            mediaTitle.setTypeface(tf); mediaDetails.setTypeface(tf); mediaProgressText.setTypeface(tf);
-            mediaTitle.setTextSize(size); mediaTitle.setTextColor(color);
-            if(getBool("frameEnabled",false)){
-                GradientDrawable bg=new GradientDrawable(); bg.setColor(Color.BLACK);
-                bg.setCornerRadius(dp(getInt("frameRadius",10)));
-                bg.setStroke(dp(getInt("frameWidth",1)),getInt("frameColor",Color.WHITE));
+        if (prefs == null || gregorianText == null) return;
+
+        int color = getInt("fontColor", dateTextColor);
+        int size = getInt("fontSize", 17);
+        int weight = getInt("fontWeight", 1);
+        Typeface tf = Typeface.create(
+                getString("fontFamily", "sans-serif"),
+                weight == 2 ? Typeface.BOLD : Typeface.NORMAL);
+
+        gregorianText.setVisibility(
+                getBool("showGregorian", true) ? View.VISIBLE : View.GONE);
+        hebrewText.setVisibility(
+                getBool("showHebrew", true) ? View.VISIBLE : View.GONE);
+
+        gregorianText.setTextColor(color);
+        hebrewText.setTextColor(color);
+        timeText.setTextColor(color);
+        gregorianText.setTextSize(size);
+        hebrewText.setTextSize(size);
+        gregorianText.setTypeface(tf);
+        hebrewText.setTypeface(tf);
+        timeText.setTypeface(tf);
+
+        if (mediaTitle != null) {
+            mediaTitle.setTypeface(tf);
+            mediaDetails.setTypeface(tf);
+            mediaProgressText.setTypeface(tf);
+            mediaTitle.setTextSize(size);
+            mediaTitle.setTextColor(color);
+
+            if (getBool("frameEnabled", false)) {
+                GradientDrawable bg = new GradientDrawable();
+                bg.setColor(Color.BLACK);
+                bg.setCornerRadius(dp(getInt("frameRadius", 10)));
+                bg.setStroke(
+                        Math.max(0, dp(getInt("frameWidth", 1))),
+                        getInt("frameColor", Color.WHITE));
                 mediaMirror.setBackground(bg);
-            } else mediaMirror.setBackgroundColor(Color.BLACK);
+            } else {
+                mediaMirror.setBackgroundColor(Color.BLACK);
+            }
+
             mediaNext.setBackground(makeMediaButtonBackground());
             mediaPrev.setBackground(makeMediaButtonBackground());
             mediaPlayPause.setBackground(makeMediaButtonBackground());
         }
     }
+
     private void showSettings() {
-        ScrollView scroll=new ScrollView(this); LinearLayout box=new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL); box.setPadding(dp(14),dp(8),dp(14),dp(14));
-        box.setBackgroundColor(Color.BLACK); scroll.addView(box);
-        TextView h=textView("הגדרות",23,Color.WHITE); h.setGravity(Gravity.CENTER); box.addView(h,new LinearLayout.LayoutParams(-1,dp(46)));
-        addSection(box,"גופן");
-        addSpinner(box,"צבע",new String[]{"לבן","אפור בהיר","אפור","כחול בהיר"},new String[]{"white","light","gray","blue"},"fontColor");
-        addSpinner(box,"גודל",new String[]{"קטן","בינוני","גדול","גדול מאוד"},new String[]{"14","17","20","23"},"fontSize");
-        addSpinner(box,"עובי",new String[]{"רגיל","בינוני","מודגש"},new String[]{"0","1","2"},"fontWeight");
-        addSpinner(box,"סוג",new String[]{"Sans","Monospace","Serif"},new String[]{"sans-serif","monospace","serif"},"fontFamily");
-        addSection(box,"תצוגה");
-        addCheck(box,"תאריך לועזי","showGregorian",true); addCheck(box,"תאריך עברי","showHebrew",true); addCheck(box,"נגן","showPlayer",true);
-        addSection(box,"אפשרויות נגן");
-        addCheck(box,"פרטים נוספים על השיר","showDetails",false);
-        addCheck(box,"שורת מיקום + זמן נוכחי / זמן כולל","showProgress",false);
-        addCheck(box,"לחצן השמעה אחרונה כשאין שיר פעיל","showLastMedia",false);
-        addSection(box,"מסגרת נגן");
-        addCheck(box,"הצג מסגרת","frameEnabled",false);
-        addSpinner(box,"צבע מסגרת",new String[]{"לבן","אפור","כחול","זהב"},new String[]{"white","gray","blue","gold"},"frameColor");
-        addSpinner(box,"עובי מסגרת",new String[]{"דקה","בינונית","עבה"},new String[]{"1","2","3"},"frameWidth");
-        addSpinner(box,"עיגול פינות",new String[]{"ישר","עדין","מעוגל"},new String[]{"0","10","20"},"frameRadius");
-        Button done=new Button(this); done.setText("סיום"); box.addView(done,new LinearLayout.LayoutParams(-1,dp(50)));
-        AlertDialog dialog=new AlertDialog.Builder(this).setView(scroll).create();
-        done.setOnClickListener(v->dialog.dismiss()); dialog.setOnDismissListener(d->{applySettings();refreshSystemMediaMirror();});
-        dialog.show();
-        if(dialog.getWindow()!=null){dialog.getWindow().setBackgroundDrawableResource(android.R.color.black);
-            dialog.getWindow().setLayout(Math.min(getResources().getDisplayMetrics().widthPixels-dp(16),dp(520)),
-                    Math.min(getResources().getDisplayMetrics().heightPixels-dp(20),dp(700)));}
+        try {
+            if (prefs == null) initSettings();
+
+            ScrollView scroll = new ScrollView(this);
+            LinearLayout box = new LinearLayout(this);
+            box.setOrientation(LinearLayout.VERTICAL);
+            box.setPadding(dp(14), dp(8), dp(14), dp(14));
+            box.setBackgroundColor(Color.BLACK);
+            scroll.addView(box);
+
+            TextView h = textView("הגדרות", 23, Color.WHITE);
+            h.setGravity(Gravity.CENTER);
+            box.addView(h, new LinearLayout.LayoutParams(-1, dp(46)));
+
+            addSection(box, "גופן");
+            addSpinner(box, "צבע",
+                    new String[]{"לבן","אפור בהיר","אפור","כחול בהיר"},
+                    new String[]{"white","light","gray","blue"}, "fontColor");
+            addSpinner(box, "גודל",
+                    new String[]{"קטן","בינוני","גדול","גדול מאוד"},
+                    new String[]{"14","17","20","23"}, "fontSize");
+            addSpinner(box, "עובי",
+                    new String[]{"רגיל","בינוני","מודגש"},
+                    new String[]{"0","1","2"}, "fontWeight");
+            addSpinner(box, "סוג",
+                    new String[]{"Sans","Monospace","Serif"},
+                    new String[]{"sans-serif","monospace","serif"}, "fontFamily");
+
+            addSection(box, "תצוגה");
+            addCheck(box, "תאריך לועזי", "showGregorian", true);
+            addCheck(box, "תאריך עברי", "showHebrew", true);
+            addCheck(box, "נגן", "showPlayer", true);
+
+            addSection(box, "אפשרויות נגן");
+            addCheck(box, "פרטים נוספים על השיר", "showDetails", false);
+            addCheck(box, "שורת מיקום + זמן נוכחי / זמן כולל", "showProgress", false);
+            addCheck(box, "לחצן השמעה אחרונה כשאין שיר פעיל", "showLastMedia", false);
+
+            addSection(box, "מסגרת נגן");
+            addCheck(box, "הצג מסגרת", "frameEnabled", false);
+            addSpinner(box, "צבע מסגרת",
+                    new String[]{"לבן","אפור","כחול","זהב"},
+                    new String[]{"white","gray","blue","gold"}, "frameColor");
+            addSpinner(box, "עובי מסגרת",
+                    new String[]{"דקה","בינונית","עבה"},
+                    new String[]{"1","2","3"}, "frameWidth");
+            addSpinner(box, "עיגול פינות",
+                    new String[]{"ישר","עדין","מעוגל"},
+                    new String[]{"0","10","20"}, "frameRadius");
+
+            Button done = new Button(this);
+            done.setText("סיום");
+            box.addView(done, new LinearLayout.LayoutParams(-1, dp(50)));
+
+            AlertDialog dialog = new AlertDialog.Builder(this)
+                    .setView(scroll)
+                    .create();
+
+            done.setOnClickListener(v -> dialog.dismiss());
+            dialog.setOnDismissListener(d -> {
+                applySettings();
+                refreshSystemMediaMirror();
+            });
+
+            dialog.show();
+
+            if (dialog.getWindow() != null) {
+                dialog.getWindow().setBackgroundDrawableResource(android.R.color.black);
+                dialog.getWindow().setLayout(
+                        Math.min(getResources().getDisplayMetrics().widthPixels - dp(16), dp(520)),
+                        Math.min(getResources().getDisplayMetrics().heightPixels - dp(20), dp(700)));
+            }
+        } catch (Throwable t) {
+            showFatalError(t);
+        }
     }
-    private void addSection(LinearLayout b,String s){TextView v=textView(s,16,Color.rgb(170,170,170));v.setGravity(Gravity.RIGHT);b.addView(v,new LinearLayout.LayoutParams(-1,dp(40)));}
-    private void addCheck(LinearLayout b,String s,String k,boolean d){CheckBox x=new CheckBox(this);x.setText(s);x.setTextColor(Color.WHITE);x.setTextSize(15);x.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);x.setChecked(getBool(k,d));x.setOnCheckedChangeListener((a,z)->{prefs.edit().putBoolean(k,z).apply();applySettings();});b.addView(x,new LinearLayout.LayoutParams(-1,dp(48)));}
-    private void addSpinner(LinearLayout b,String label,String[] names,String[] vals,String key){
-        LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);TextView l=textView(label,15,Color.WHITE);l.setGravity(Gravity.RIGHT);
-        row.addView(l,new LinearLayout.LayoutParams(0,dp(48),1f));Spinner sp=new Spinner(this);
-        sp.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,names));
-        int ix=0;
+
+    private void addSection(LinearLayout b, String s) {
+        TextView v = textView(s, 16, Color.rgb(170,170,170));
+        v.setGravity(Gravity.RIGHT);
+        b.addView(v, new LinearLayout.LayoutParams(-1, dp(40)));
+    }
+
+    private void addCheck(LinearLayout b, String s, String k, boolean d) {
+        CheckBox x = new CheckBox(this);
+        x.setText(s);
+        x.setTextColor(Color.WHITE);
+        x.setTextSize(15);
+        x.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        x.setChecked(getBool(k, d));
+        x.setOnCheckedChangeListener((a, z) -> {
+            try {
+                prefs.edit().putBoolean(k, z).apply();
+                applySettings();
+            } catch (Throwable ignored) {
+            }
+        });
+        b.addView(x, new LinearLayout.LayoutParams(-1, dp(48)));
+    }
+
+    private void addSpinner(LinearLayout b, String label, String[] names,
+                            String[] vals, String key) {
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView l = textView(label, 15, Color.WHITE);
+        l.setGravity(Gravity.RIGHT);
+        row.addView(l, new LinearLayout.LayoutParams(0, dp(48), 1f));
+
+        Spinner sp = new Spinner(this);
+        sp.setAdapter(new ArrayAdapter<String>(
+                this, android.R.layout.simple_spinner_dropdown_item, names));
+
+        int ix = 0;
         if (key.equals("fontColor") || key.equals("frameColor")) {
-            int stored = prefs.getInt(key, key.equals("fontColor") ? dateTextColor : Color.WHITE);
-            for (int i=0; i<vals.length; i++) {
-                String v = vals[i];
-                int col = v.equals("white") ? Color.WHITE :
-                        v.equals("light") ? Color.rgb(220,220,220) :
-                        v.equals("gray") ? Color.GRAY :
-                        v.equals("blue") ? Color.rgb(80,160,255) :
-                        Color.rgb(220,180,70);
-                if (stored == col) { ix=i; break; }
+            int stored = getInt(
+                    key, key.equals("fontColor") ? dateTextColor : Color.WHITE);
+
+            for (int i = 0; i < vals.length; i++) {
+                int col = colorValue(vals[i]);
+                if (stored == col) {
+                    ix = i;
+                    break;
+                }
+            }
+        } else if (key.equals("fontSize") || key.equals("fontWeight")
+                || key.equals("frameWidth") || key.equals("frameRadius")) {
+            int stored = getInt(key, Integer.parseInt(vals[0]));
+            for (int i = 0; i < vals.length; i++) {
+                try {
+                    if (Integer.parseInt(vals[i]) == stored) {
+                        ix = i;
+                        break;
+                    }
+                } catch (NumberFormatException ignored) {
+                }
             }
         } else {
-            String cur=prefs.getString(key,vals[0]);
-            for(int i=0;i<vals.length;i++) if(vals[i].equals(cur)) { ix=i; break; }
+            String cur = getString(key, vals[0]);
+            for (int i = 0; i < vals.length; i++) {
+                if (vals[i].equals(cur)) {
+                    ix = i;
+                    break;
+                }
+            }
         }
+
         sp.setSelection(ix);
-        sp.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){
-            public void onItemSelected(android.widget.AdapterView<?> p,View v,int pos,long id){
-                String val=vals[pos];SharedPreferences.Editor e=prefs.edit();
-                if(key.equals("fontColor")||key.equals("frameColor")){
-                    int col=val.equals("white")?Color.WHITE:val.equals("light")?Color.rgb(220,220,220):val.equals("gray")?Color.GRAY:val.equals("blue")?Color.rgb(80,160,255):Color.rgb(220,180,70);e.putInt(key,col);
-                } else if(key.equals("fontSize")||key.equals("fontWeight")||key.equals("frameWidth")||key.equals("frameRadius")) e.putInt(key,Integer.parseInt(val)); else e.putString(key,val);
-                e.apply();applySettings();
-            } public void onNothingSelected(android.widget.AdapterView<?> p){}
-        });row.addView(sp,new LinearLayout.LayoutParams(dp(150),dp(48)));b.addView(row);
+        sp.setOnItemSelectedListener(
+                new android.widget.AdapterView.OnItemSelectedListener() {
+                    @Override public void onItemSelected(
+                            android.widget.AdapterView<?> parent,
+                            View view, int pos, long id) {
+                        try {
+                            String val = vals[pos];
+                            SharedPreferences.Editor e = prefs.edit();
+
+                            if (key.equals("fontColor") || key.equals("frameColor")) {
+                                e.putInt(key, colorValue(val));
+                            } else if (key.equals("fontSize")
+                                    || key.equals("fontWeight")
+                                    || key.equals("frameWidth")
+                                    || key.equals("frameRadius")) {
+                                e.putInt(key, Integer.parseInt(val));
+                            } else {
+                                e.putString(key, val);
+                            }
+
+                            e.apply();
+                            applySettings();
+                        } catch (Throwable ignored) {
+                        }
+                    }
+
+                    @Override public void onNothingSelected(
+                            android.widget.AdapterView<?> parent) {
+                    }
+                });
+
+        row.addView(sp, new LinearLayout.LayoutParams(dp(150), dp(48)));
+        b.addView(row);
     }
-    private void playLastMedia(){try{if(mediaController!=null){mediaController.getTransportControls().play();lastMediaButton.setVisibility(View.GONE);mediaPlayPause.setVisibility(View.VISIBLE);}}catch(Throwable ignored){}}
+
+    private int colorValue(String value) {
+        if ("white".equals(value)) return Color.WHITE;
+        if ("light".equals(value)) return Color.rgb(220,220,220);
+        if ("gray".equals(value)) return Color.GRAY;
+        if ("blue".equals(value)) return Color.rgb(80,160,255);
+        if ("gold".equals(value)) return Color.rgb(220,180,70);
+        return Color.WHITE;
+    }
+
     private void updateClock() {
         now.setTimeInMillis(System.currentTimeMillis());
         timeText.setText(numericTime());
