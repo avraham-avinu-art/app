@@ -491,9 +491,15 @@ public class MainActivity extends Activity {
                 mediaMirror.setBackgroundColor(Color.BLACK);
             }
 
-            mediaNext.setBackground(makeMediaButtonBackground());
-            mediaPrev.setBackground(makeMediaButtonBackground());
-            mediaPlayPause.setBackground(makeMediaButtonBackground());
+            mediaNext.setBackgroundColor(Color.TRANSPARENT);
+            mediaPrev.setBackgroundColor(Color.TRANSPARENT);
+            mediaPlayPause.setBackgroundColor(Color.TRANSPARENT);
+            if (lastMediaButton != null) {
+                lastMediaButton.setText("play\n⏻");
+                lastMediaButton.setTextColor(Color.WHITE);
+                lastMediaButton.setAlpha(0.50f);
+                lastMediaButton.setBackgroundColor(Color.TRANSPARENT);
+            }
         }
     }
 
