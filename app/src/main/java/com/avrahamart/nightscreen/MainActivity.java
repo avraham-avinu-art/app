@@ -1,6 +1,7 @@
 package com.avrahamart.nightscreen;
 
 import android.app.Activity;
+import android.animation.ObjectAnimator;
 import android.app.NotificationManager;
 import android.app.AlertDialog;
 import android.content.SharedPreferences;
@@ -60,6 +61,7 @@ public class MainActivity extends Activity {
     private SeekBar mediaSeekBar;
     private TextView lastMediaButton;
     private MediaController lastKnownMediaController;
+    private ObjectAnimator titleMarqueeAnimator;
     private String lastTitle = "";
     private String lastArtist = "";
 
@@ -124,6 +126,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         handler.removeCallbacks(ticker);
+        stopTitleMarquee();
         detachMediaController();
         super.onDestroy();
     }
@@ -380,6 +383,8 @@ public class MainActivity extends Activity {
         e.putBoolean("showDetails", getBool("showDetails", false));
         e.putBoolean("showProgress", getBool("showProgress", false));
         e.putBoolean("showLastMedia", getBool("showLastMedia", false));
+        lastTitle = getString("lastTitle", lastTitle);
+        lastArtist = getString("lastArtist", lastArtist);
 
         e.putBoolean("frameEnabled", getBool("frameEnabled", false));
         e.putInt("frameColor", getInt("frameColor", Color.WHITE));
@@ -810,6 +815,7 @@ public class MainActivity extends Activity {
                     mediaDetails.setVisibility(getBool("showDetails", false) ? View.VISIBLE : View.GONE);
                     mediaProgressText.setVisibility(View.GONE);
                     mediaSeekBar.setVisibility(View.GONE);
+                    mediaSeekBar.setVisibility(View.GONE);
                     mediaNext.setVisibility(View.GONE);
                     mediaPrev.setVisibility(View.GONE);
                     mediaPlayPause.setVisibility(View.GONE);
@@ -926,24 +932,33 @@ public class MainActivity extends Activity {
 
             title = removeFileExtension(title);
             mediaTitle.setText(title);
-            mediaTitle.setSelected(false);
+            stopTitleMarquee();
             mediaTitle.post(() -> {
                 try {
                     float textWidth = mediaTitle.getPaint().measureText(title);
                     float available = Math.max(0, mediaTitle.getWidth() - mediaTitle.getPaddingLeft() - mediaTitle.getPaddingRight());
-                    if (textWidth > available + mediaTitle.getPaint().measureText("XX")) {
-                        mediaTitle.setSelected(true);
-                        mediaTitle.setEllipsize(TextUtils.TruncateAt.MARQUEE);
-                        mediaTitle.setMarqueeRepeatLimit(-1);
+                    float threshold = mediaTitle.getPaint().measureText("XX");
+                    float overflow = textWidth - available;
+                    if (overflow > threshold) {
+                        mediaTitle.setEllipsize(null);
                         mediaTitle.setHorizontallyScrolling(true);
-                        mediaTitle.setSelected(true);
+                        mediaTitle.setScrollX(0);
+                        titleMarqueeAnimator = ObjectAnimator.ofInt(
+                                mediaTitle, "scrollX", 0, Math.max(1, (int)Math.ceil(overflow)));
+                        long duration = Math.max(14000L, Math.min(30000L, (long)(overflow * 45L)));
+                        titleMarqueeAnimator.setDuration(duration);
+                        titleMarqueeAnimator.setRepeatMode(ObjectAnimator.REVERSE);
+                        titleMarqueeAnimator.setRepeatCount(ObjectAnimator.INFINITE);
+                        titleMarqueeAnimator.start();
                     } else {
                         mediaTitle.setEllipsize(TextUtils.TruncateAt.END);
-                        mediaTitle.setSelected(false);
+                        mediaTitle.setHorizontallyScrolling(false);
+                        mediaTitle.setScrollX(0);
                     }
                 } catch (Throwable ignored) {}
             });
             lastTitle = title;
+            prefs.edit().putString("lastTitle", lastTitle).putString("lastArtist", lastArtist).apply();
             String artist = metadata == null ? "" : metadata.getString(MediaMetadata.METADATA_KEY_ARTIST);
             lastArtist = artist == null ? "" : artist;
             long duration = metadata == null ? 0L : metadata.getLong(MediaMetadata.METADATA_KEY_DURATION);
@@ -1035,6 +1050,19 @@ public class MainActivity extends Activity {
             return value.substring(0, dot);
         }
         return value;
+    }
+
+    private void stopTitleMarquee() {
+        try {
+            if (titleMarqueeAnimator != null) {
+                titleMarqueeAnimator.cancel();
+                titleMarqueeAnimator = null;
+            }
+        } catch (Throwable ignored) {
+        }
+        if (mediaTitle != null) {
+            mediaTitle.setScrollX(0);
+        }
     }
 
     private void sendPlayPause() {
