@@ -255,7 +255,9 @@ public class MainActivity extends Activity {
             } else {
                 mp.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
                 int mediaH = Math.max(0, mediaHolder.getMeasuredHeight());
-                mp.topMargin = Math.max(0, Math.round((h * 2f / 3f) - mediaH));
+                // "Lower third" means the player is centered in the lower third,
+                // while "bottom" remains anchored to the very bottom edge.
+                mp.topMargin = Math.max(0, Math.round((h * 5f / 6f) - mediaH / 2f));
                 mp.bottomMargin = 0;
                 mp.height = FrameLayout.LayoutParams.WRAP_CONTENT;
             }
