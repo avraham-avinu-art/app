@@ -760,10 +760,15 @@ public class MainActivity extends Activity {
 
             AlertDialog dialog = new AlertDialog.Builder(this).setView(scroll).create();
             done.setOnClickListener(v -> dialog.dismiss());
+            // Temporarily restore the system bars while settings are open,
+            // so the notification shade can be pulled down normally.
+            showSystemUiForSettings();
+
             dialog.setOnDismissListener(d -> {
                 applySettings();
                 refreshSystemMediaMirror();
                 scheduleAutoOff();
+                hideSystemUi();
             });
 
             dialog.show();
@@ -1529,6 +1534,30 @@ public class MainActivity extends Activity {
     private int dp(int value) {
         return Math.round(
                 value * getResources().getDisplayMetrics().density);
+    }
+
+    private void showSystemUiForSettings() {
+        try {
+            getWindow().clearFlags(
+                    android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+            View decor = getWindow().getDecorView();
+            decor.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+
+            if (Build.VERSION.SDK_INT >= 30) {
+                android.view.WindowInsetsController controller =
+                        decor.getWindowInsetsController();
+                if (controller != null) {
+                    controller.show(
+                            android.view.WindowInsets.Type.statusBars()
+                                    | android.view.WindowInsets.Type.navigationBars()
+                                    | android.view.WindowInsets.Type.captionBar());
+                    controller.setSystemBarsBehavior(
+                            android.view.WindowInsetsController.BEHAVIOR_DEFAULT);
+                }
+            }
+        } catch (Throwable ignored) {
+        }
     }
 
     private void hideSystemUi() {
