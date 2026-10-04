@@ -61,6 +61,9 @@ public class MainActivity extends Activity {
     private final int dateTextColor = Color.rgb(220, 220, 220);
     private SharedPreferences prefs;
     private TextView settingsButton;
+    private FrameLayout stageView;
+    private LinearLayout clockBlockView;
+    private LinearLayout mediaHolderView;
     private TextView mediaDetails;
     private TextView mediaProgressText;
     private TextView mediaCurrentText;
@@ -146,24 +149,26 @@ public class MainActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER_HORIZONTAL);
         root.setBackgroundColor(Color.BLACK);
-        root.setPadding(dp(10), dp(6), dp(10), dp(4));
+        root.setPadding(dp(10), 0, dp(10), dp(4));
 
         FrameLayout stage = new FrameLayout(this);
+        stageView = stage;
         stage.setBackgroundColor(Color.BLACK);
         root.addView(stage, new LinearLayout.LayoutParams(-1, 0, 1f));
 
-        settingsButton = textView("⋮", 22, Color.WHITE);
+        settingsButton = textView("⚙", 20, Color.WHITE);
         settingsButton.setAlpha(0.20f);
         settingsButton.setGravity(Gravity.CENTER);
         settingsButton.setContentDescription("הגדרות");
         settingsButton.setOnClickListener(v -> showSettings());
         FrameLayout.LayoutParams settingsParams = new FrameLayout.LayoutParams(
-                dp(30), dp(34), Gravity.TOP | Gravity.RIGHT);
-        settingsParams.rightMargin = dp(2);
+                dp(30), dp(34), Gravity.TOP | Gravity.LEFT);
+        settingsParams.leftMargin = dp(2);
         settingsParams.topMargin = 0;
         stage.addView(settingsButton, settingsParams);
 
         LinearLayout clockBlock = new LinearLayout(this);
+        clockBlockView = clockBlock;
         clockBlock.setOrientation(LinearLayout.VERTICAL);
         clockBlock.setGravity(Gravity.CENTER_HORIZONTAL);
 
@@ -194,6 +199,7 @@ public class MainActivity extends Activity {
         stage.addView(clockBlock, new FrameLayout.LayoutParams(-1, initialClockBlockHeight, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
 
         LinearLayout mediaHolder = new LinearLayout(this);
+        mediaHolderView = mediaHolder;
         mediaHolder.setOrientation(LinearLayout.VERTICAL);
         mediaHolder.setGravity(Gravity.CENTER_HORIZONTAL);
         stage.addView(mediaHolder, new FrameLayout.LayoutParams(-1, -2));
@@ -203,7 +209,7 @@ public class MainActivity extends Activity {
 
         stage.post(() -> {
             applySettings();
-            updateScreenPositions(stage, clockBlock, mediaHolder);
+            updateScreenPositions(stageView, clockBlockView, mediaHolderView);
         });
         setContentView(root);
     }
@@ -461,7 +467,7 @@ public class MainActivity extends Activity {
         e.putString("screenSaverDuration", getString("screenSaverDuration", "0"));
         e.putString("clockDatePosition", getString("clockDatePosition", "top"));
         e.putString("playerPosition", getString("playerPosition", "bottom"));
-        e.apply();
+        e.commit();
     }
 
     private boolean getBool(String key, boolean def) {
@@ -637,7 +643,7 @@ public class MainActivity extends Activity {
             View parent = mediaMirror.getParent() instanceof View ? (View) mediaMirror.getParent() : null;
             if (parent != null && parent.getParent() instanceof FrameLayout) {
                 FrameLayout stage = (FrameLayout) parent.getParent();
-                updateScreenPositions(stage, stage.getChildAt(0), parent);
+                updateScreenPositions(stageView, clockBlockView, mediaHolderView);
             }
             scheduleAutoOff();
         }
@@ -774,7 +780,7 @@ public class MainActivity extends Activity {
         x.setChecked(getBool(k, d));
         x.setOnCheckedChangeListener((a, z) -> {
             try {
-                prefs.edit().putBoolean(k, z).apply();
+                prefs.edit().putBoolean(k, z).commit();
                 applySettings();
             } catch (Throwable ignored) {
             }
@@ -879,7 +885,7 @@ public class MainActivity extends Activity {
                                 e.putString(key, val);
                             }
 
-                            e.apply();
+                            e.commit();
                             applySettings();
                         } catch (Throwable ignored) {
                         }
@@ -986,19 +992,25 @@ public class MainActivity extends Activity {
             ComponentName listener = new ComponentName(
                     this, SystemMediaNotificationListener.class);
 
-            // Prefer the session Android is currently routing media-key commands to.
+            // Prefer the media-key session only when it is a real media session.
+            // Some Android versions keep a stale system session here with no title;
+            // in that case we must fall back to the complete active-session list.
             MediaController selected = null;
             if (Build.VERSION.SDK_INT >= 33) {
                 try {
                     MediaSession.Token token = mediaSessionManager.getMediaKeyEventSession();
                     if (token != null) {
-                        selected = new MediaController(this, token);
+                        MediaController candidate = new MediaController(this, token);
+                        if (hasUsableMediaSession(candidate)) {
+                            selected = candidate;
+                        }
                     }
                 } catch (Throwable ignored) {
                 }
             }
 
-            // Fallback to the complete active-session list, already ordered by Android.
+            // Always inspect active sessions when the preferred session is stale,
+            // so playback started after app launch is detected on the next refresh.
             if (selected == null) {
                 List<MediaController> sessions =
                         mediaSessionManager.getActiveSessions(listener);
@@ -1024,6 +1036,31 @@ public class MainActivity extends Activity {
         } catch (Throwable ignored) {
             hideMediaMirror();
         }
+    }
+
+    private boolean hasUsableMediaSession(MediaController controller) {
+        if (controller == null) return false;
+        try {
+            PlaybackState state = controller.getPlaybackState();
+            MediaMetadata metadata = controller.getMetadata();
+            if (state != null) {
+                int s = state.getState();
+                if (s == PlaybackState.STATE_PLAYING ||
+                        s == PlaybackState.STATE_BUFFERING ||
+                        s == PlaybackState.STATE_PAUSED) {
+                    return true;
+                }
+            }
+            if (metadata != null) {
+                String title = metadata.getString(MediaMetadata.METADATA_KEY_TITLE);
+                if (title == null || title.trim().isEmpty()) {
+                    title = metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE);
+                }
+                return title != null && !title.trim().isEmpty();
+            }
+        } catch (Throwable ignored) {
+        }
+        return false;
     }
 
     private MediaController selectBestSession(List<MediaController> sessions) {
@@ -1188,7 +1225,7 @@ public class MainActivity extends Activity {
             View parent = mediaMirror.getParent() instanceof View ? (View) mediaMirror.getParent() : null;
             if (parent != null && parent.getParent() instanceof FrameLayout) {
                 FrameLayout stage = (FrameLayout) parent.getParent();
-                stage.post(() -> updateScreenPositions(stage, stage.getChildAt(0), parent));
+                stage.post(() -> updateScreenPositions(stageView, clockBlockView, mediaHolderView));
             }
         } catch (Throwable ignored) {
             hideMediaMirror();
