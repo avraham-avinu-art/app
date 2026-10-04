@@ -310,16 +310,16 @@ public class MainActivity extends Activity {
         totalParams.leftMargin = dp(4);
         mediaProgressRow.addView(mediaTotalText, totalParams);
 
-        // Tight vertical gap matching the supplied reference image.
-        View controlGap = new View(this);
-        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(-1, dp(30));
-        titleParams.topMargin = dp(2);
-        mediaMirror.addView(mediaTitle, titleParams);
+        // Artist first, then song title, followed immediately by the position row.
         LinearLayout.LayoutParams detailsParams = new LinearLayout.LayoutParams(-1, dp(20));
         mediaMirror.addView(mediaDetails, detailsParams);
 
-        LinearLayout.LayoutParams progressParams = new LinearLayout.LayoutParams(-1, dp(32));
-        progressParams.topMargin = dp(2);
+        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(-1, dp(30));
+        titleParams.topMargin = dp(0);
+        mediaMirror.addView(mediaTitle, titleParams);
+
+        LinearLayout.LayoutParams progressParams = new LinearLayout.LayoutParams(-1, dp(28));
+        progressParams.topMargin = dp(0);
         mediaMirror.addView(mediaProgressRow, progressParams);
         mediaMirror.addView(controlGap,
                 new LinearLayout.LayoutParams(1, dp(8)));
@@ -335,7 +335,7 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams controlAreaParams =
                 new LinearLayout.LayoutParams(controlWidth, dp(40));
         controlAreaParams.gravity = Gravity.CENTER_HORIZONTAL;
-        controlAreaParams.topMargin = dp(-3);
+        controlAreaParams.topMargin = dp(-5);
 
         // Physical order: Next on the left, Play/Pause in the center, Previous on the right.
         mediaNext = mediaIconButton(R.drawable.media_next, "הבא");
