@@ -62,6 +62,7 @@ public class MainActivity extends Activity {
     private TextView mediaProgressText;
     private TextView mediaCurrentText;
     private TextView mediaTotalText;
+    private LinearLayout mediaProgressRow;
     private SeekBar mediaSeekBar;
     private TextView lastMediaButton;
     private MediaController lastKnownMediaController;
@@ -262,17 +263,18 @@ public class MainActivity extends Activity {
         mediaDetails.setVisibility(View.GONE);
         mediaMirror.addView(mediaDetails, new LinearLayout.LayoutParams(-1, dp(22)));
 
-        LinearLayout progressRow = new LinearLayout(this);
+        mediaProgressRow = new LinearLayout(this);
+        LinearLayout progressRow = mediaProgressRow;
         progressRow.setOrientation(LinearLayout.HORIZONTAL);
         progressRow.setGravity(Gravity.CENTER_VERTICAL);
-        progressRow.setPadding(0, 0, 0, 0);
+        progressRow.setPadding(dp(8), 0, dp(8), 0);
         progressRow.setVisibility(View.GONE);
 
         mediaCurrentText = textView("0:00", 12, Color.WHITE);
         mediaCurrentText.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
         mediaCurrentText.setSingleLine(true);
         mediaCurrentText.setIncludeFontPadding(false);
-        progressRow.addView(mediaCurrentText, new LinearLayout.LayoutParams(dp(34), dp(28)));
+        progressRow.addView(mediaCurrentText, new LinearLayout.LayoutParams(dp(48), dp(28)));
 
         mediaSeekBar = new SeekBar(this);
         mediaSeekBar.setVisibility(View.GONE);
@@ -302,7 +304,7 @@ public class MainActivity extends Activity {
         mediaTotalText.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         mediaTotalText.setSingleLine(true);
         mediaTotalText.setIncludeFontPadding(false);
-        progressRow.addView(mediaTotalText, new LinearLayout.LayoutParams(dp(34), dp(28)));
+        progressRow.addView(mediaTotalText, new LinearLayout.LayoutParams(dp(48), dp(28)));
         mediaMirror.addView(progressRow, new LinearLayout.LayoutParams(-1, dp(30)));
         mediaProgressText = textView("", 1, Color.TRANSPARENT);
         mediaProgressText.setVisibility(View.GONE);
@@ -314,7 +316,7 @@ public class MainActivity extends Activity {
         controls.setPadding(0, 0, 0, 0);
 
         mediaPrev = mediaButton("|◀");
-        mediaPrev.setTextSize(24);
+        mediaPrev.setTextSize(25);
         mediaPrev.setTypeface(Typeface.DEFAULT);
         mediaPrev.setTextColor(Color.WHITE);
         mediaPrev.setBackgroundColor(Color.TRANSPARENT);
@@ -323,7 +325,7 @@ public class MainActivity extends Activity {
         controls.addView(mediaPrev, new LinearLayout.LayoutParams(0, dp(52), 1f));
 
         mediaPlayPause = mediaButton("Ⅱ");
-        mediaPlayPause.setTextSize(31);
+        mediaPlayPause.setTextSize(34);
         mediaPlayPause.setTypeface(Typeface.DEFAULT_BOLD);
         mediaPlayPause.setTextColor(Color.WHITE);
         mediaPlayPause.setBackgroundColor(Color.TRANSPARENT);
@@ -332,7 +334,7 @@ public class MainActivity extends Activity {
         controls.addView(mediaPlayPause, new LinearLayout.LayoutParams(0, dp(52), 1f));
 
         mediaNext = mediaButton("▶|");
-        mediaNext.setTextSize(24);
+        mediaNext.setTextSize(25);
         mediaNext.setTypeface(Typeface.DEFAULT);
         mediaNext.setTextColor(Color.WHITE);
         mediaNext.setBackgroundColor(Color.TRANSPARENT);
@@ -948,6 +950,7 @@ public class MainActivity extends Activity {
                     mediaDetails.setText("");
                     mediaDetails.setVisibility(View.GONE);
                     mediaProgressText.setVisibility(View.GONE);
+                    mediaProgressRow.setVisibility(View.GONE);
                     mediaCurrentText.setVisibility(View.GONE);
                     mediaTotalText.setVisibility(View.GONE);
                     mediaSeekBar.setVisibility(View.GONE);
@@ -1111,6 +1114,7 @@ public class MainActivity extends Activity {
             mediaDetails.setText(lastArtist);
             mediaDetails.setVisibility(getBool("showDetails", false) && !lastArtist.isEmpty() ? View.VISIBLE : View.GONE);
             boolean showProgress = getBool("showProgress", false) && duration > 0;
+            mediaProgressRow.setVisibility(showProgress ? View.VISIBLE : View.GONE);
             mediaSeekBar.setVisibility(showProgress ? View.VISIBLE : View.GONE);
             mediaCurrentText.setVisibility(showProgress ? View.VISIBLE : View.GONE);
             mediaTotalText.setVisibility(showProgress ? View.VISIBLE : View.GONE);
