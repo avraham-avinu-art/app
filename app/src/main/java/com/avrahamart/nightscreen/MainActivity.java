@@ -47,7 +47,7 @@ public class MainActivity extends Activity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Calendar now = Calendar.getInstance();
     private final SimpleDateFormat numericDateFormat =
-            new SimpleDateFormat("dd-MM-yyyy", Locale.US);
+            new SimpleDateFormat("dd.MM.yyyy", Locale.US);
 
     private TextView timeText;
     private TextView gregorianText;
@@ -133,8 +133,8 @@ public class MainActivity extends Activity {
 
         LinearLayout top = new LinearLayout(this);
         top.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-        settingsButton = textView("⚙", 20, Color.argb(120, 255, 255, 255));
-        settingsButton.setAlpha(0.65f);
+        settingsButton = textView("☰", 20, Color.argb(245, 255, 255, 255));
+        settingsButton.setAlpha(0.98f);
         settingsButton.setGravity(Gravity.CENTER);
         settingsButton.setContentDescription("הגדרות");
         settingsButton.setOnClickListener(v -> showSettings());
@@ -400,7 +400,23 @@ public class MainActivity extends Activity {
         LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);TextView l=textView(label,15,Color.WHITE);l.setGravity(Gravity.RIGHT);
         row.addView(l,new LinearLayout.LayoutParams(0,dp(48),1f));Spinner sp=new Spinner(this);
         sp.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,names));
-        String cur=prefs.getString(key,vals[0]);int ix=0;for(int i=0;i<vals.length;i++)if(vals[i].equals(cur))ix=i;sp.setSelection(ix);
+        int ix=0;
+        if (key.equals("fontColor") || key.equals("frameColor")) {
+            int stored = prefs.getInt(key, key.equals("fontColor") ? dateTextColor : Color.WHITE);
+            for (int i=0; i<vals.length; i++) {
+                String v = vals[i];
+                int col = v.equals("white") ? Color.WHITE :
+                        v.equals("light") ? Color.rgb(220,220,220) :
+                        v.equals("gray") ? Color.GRAY :
+                        v.equals("blue") ? Color.rgb(80,160,255) :
+                        Color.rgb(220,180,70);
+                if (stored == col) { ix=i; break; }
+            }
+        } else {
+            String cur=prefs.getString(key,vals[0]);
+            for(int i=0;i<vals.length;i++) if(vals[i].equals(cur)) { ix=i; break; }
+        }
+        sp.setSelection(ix);
         sp.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){
             public void onItemSelected(android.widget.AdapterView<?> p,View v,int pos,long id){
                 String val=vals[pos];SharedPreferences.Editor e=prefs.edit();
@@ -431,7 +447,7 @@ public class MainActivity extends Activity {
     }
 
     private String numericTime() {
-        return String.format(Locale.US, "%02d:%02d",
+        return String.format(Locale.US, "%d:%02d",
                 now.get(Calendar.HOUR_OF_DAY),
                 now.get(Calendar.MINUTE));
     }
