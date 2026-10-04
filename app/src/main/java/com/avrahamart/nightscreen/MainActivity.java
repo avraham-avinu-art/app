@@ -64,7 +64,6 @@ public class MainActivity extends Activity {
     private TextView mediaTotalText;
     private LinearLayout mediaProgressRow;
     private SeekBar mediaSeekBar;
-    private TextView lastMediaButton;
     private MediaController lastKnownMediaController;
     private ObjectAnimator titleMarqueeAnimator;
     private String lastTitle = "";
@@ -316,11 +315,11 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(-1, dp(30));
         titleParams.topMargin = dp(2);
         mediaMirror.addView(mediaTitle, titleParams);
-        LinearLayout.LayoutParams detailsParams = new LinearLayout.LayoutParams(-1, dp(24));
+        LinearLayout.LayoutParams detailsParams = new LinearLayout.LayoutParams(-1, dp(20));
         mediaMirror.addView(mediaDetails, detailsParams);
 
         LinearLayout.LayoutParams progressParams = new LinearLayout.LayoutParams(-1, dp(32));
-        progressParams.topMargin = dp(6);
+        progressParams.topMargin = dp(2);
         mediaMirror.addView(mediaProgressRow, progressParams);
         mediaMirror.addView(controlGap,
                 new LinearLayout.LayoutParams(1, dp(8)));
@@ -336,10 +335,11 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams controlAreaParams =
                 new LinearLayout.LayoutParams(controlWidth, dp(40));
         controlAreaParams.gravity = Gravity.CENTER_HORIZONTAL;
+        controlAreaParams.topMargin = dp(-3);
 
         // Physical order: Next on the left, Play/Pause in the center, Previous on the right.
         mediaNext = mediaIconButton(R.drawable.media_next, "הבא");
-        mediaNext.setOnClickListener(v -> sendNext());
+        mediaNext.setOnClickListener(v -> sendPrevious());
         FrameLayout.LayoutParams nextParams =
                 new FrameLayout.LayoutParams(buttonSize, buttonSize, Gravity.LEFT | Gravity.CENTER_VERTICAL);
         controls.addView(mediaNext, nextParams);
@@ -351,17 +351,12 @@ public class MainActivity extends Activity {
         controls.addView(mediaPlayPause, playParams);
 
         mediaPrev = mediaIconButton(R.drawable.media_previous, "הקודם");
-        mediaPrev.setOnClickListener(v -> sendPrevious());
+        mediaPrev.setOnClickListener(v -> sendNext());
         FrameLayout.LayoutParams prevParams =
                 new FrameLayout.LayoutParams(buttonSize, buttonSize, Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         controls.addView(mediaPrev, prevParams);
 
         mediaMirror.addView(controls, controlAreaParams);
-
-        lastMediaButton = mediaButton("play\\n⏻");
-        lastMediaButton.setTextSize(15);
-        lastMediaButton.setVisibility(View.GONE);
-        lastMediaButton.setOnClickListener(v -> playLastMedia());
 
         LinearLayout.LayoutParams mirrorParams =
                 new LinearLayout.LayoutParams(
@@ -393,7 +388,6 @@ public class MainActivity extends Activity {
         e.putBoolean("showPlayer", getBool("showPlayer", true));
         e.putBoolean("showDetails", getBool("showDetails", true));
         e.putBoolean("showProgress", getBool("showProgress", true));
-        e.putBoolean("showLastMedia", getBool("showLastMedia", false));
         lastTitle = getString("lastTitle", lastTitle);
         lastArtist = getString("lastArtist", lastArtist);
 
@@ -608,7 +602,6 @@ public class MainActivity extends Activity {
                     new String[]{"14","17","20","23"}, "playerSize");
             addCheck(box, "פרטי אמן (כשקיים בלבד)", "showDetails", getBool("showDetails", true));
             addCheck(box, "שורת מיקום + זמן", "showProgress", true);
-            addCheck(box, "לחצן השמעה אחרונה כשאין שיר פעיל", "showLastMedia", false);
 
             addSection(box, "מסגרת נגן");
             addCheck(box, "הצג מסגרת", "frameEnabled", false);
@@ -809,51 +802,6 @@ public class MainActivity extends Activity {
         if ("purple".equals(value)) return Color.rgb(145,130,165);
         if ("gold".equals(value)) return Color.rgb(190,165,105);
         return Color.WHITE;
-    }
-
-    private void playLastMedia() {
-        try {
-            MediaController controller = null;
-            if (mediaSessionManager == null) {
-                mediaSessionManager = (MediaSessionManager)
-                        getSystemService(MEDIA_SESSION_SERVICE);
-            }
-            if (mediaSessionManager != null) {
-                try {
-                    if (Build.VERSION.SDK_INT >= 33) {
-                        MediaSession.Token token = mediaSessionManager.getMediaKeyEventSession();
-                        if (token != null) controller = new MediaController(this, token);
-                    }
-                } catch (Throwable ignored) {}
-
-                if (controller == null) {
-                    try {
-                        ComponentName listener =
-                                new ComponentName(this, SystemMediaNotificationListener.class);
-                        controller = selectPlayableSession(
-                                mediaSessionManager.getActiveSessions(listener));
-                    } catch (Throwable ignored) {}
-                }
-            }
-
-            if (controller != null) {
-                lastKnownMediaController = controller;
-                if (mediaController == null ||
-                        !mediaController.getSessionToken().equals(controller.getSessionToken())) {
-                    attachMediaController(controller);
-                }
-                try {
-                    MediaController.TransportControls controls = controller.getTransportControls();
-                    if (controls != null) {
-                        controls.play();
-                        handler.postDelayed(this::refreshSystemMediaMirror, 250L);
-                        return;
-                    }
-                } catch (Throwable ignored) {}
-            }
-
-            dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY);
-        } catch (Throwable ignored) {}
     }
 
     private MediaController selectPlayableSession(List<MediaController> sessions) {
