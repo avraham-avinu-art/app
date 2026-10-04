@@ -250,6 +250,8 @@ public class MainActivity extends Activity {
         mediaTitle.setVisibility(View.GONE);
         mediaDetails = textView("", 13, Color.rgb(175, 175, 175));
         mediaDetails.setVisibility(View.GONE);
+        mediaProgressText = textView("", 12, Color.WHITE);
+        mediaProgressText.setVisibility(View.GONE);
 
         mediaProgressRow = new LinearLayout(this);
         mediaProgressRow.setOrientation(LinearLayout.HORIZONTAL);
