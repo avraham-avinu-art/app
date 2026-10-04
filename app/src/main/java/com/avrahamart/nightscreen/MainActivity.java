@@ -257,7 +257,7 @@ public class MainActivity extends Activity {
                 int mediaH = Math.max(0, mediaHolder.getMeasuredHeight());
                 // "Lower quarter" is positioned 20% above the bottom edge,
                 // while "bottom" remains anchored to the very bottom edge.
-                mp.topMargin = Math.max(0, Math.round((h * 0.70f) - mediaH / 2f));
+                mp.topMargin = Math.max(0, Math.round((h * 0.65f) - mediaH / 2f));
                 mp.bottomMargin = 0;
                 mp.height = FrameLayout.LayoutParams.WRAP_CONTENT;
             }
