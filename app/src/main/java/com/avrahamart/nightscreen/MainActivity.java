@@ -251,7 +251,7 @@ public class MainActivity extends Activity {
         mediaTitle.setGravity(Gravity.CENTER);
         mediaTitle.setSingleLine(true);
         mediaDetails = textView("", 13, Color.rgb(175, 175, 175));
-        mediaDetails.setVisibility(View.VISIBLE);
+        mediaDetails.setVisibility(View.INVISIBLE);
         mediaDetails.setGravity(Gravity.CENTER);
         mediaDetails.setSingleLine(true);
         mediaProgressText = textView("", 12, Color.WHITE);
@@ -320,7 +320,7 @@ public class MainActivity extends Activity {
         mediaMirror.addView(mediaDetails, detailsParams);
 
         LinearLayout.LayoutParams progressParams = new LinearLayout.LayoutParams(-1, dp(32));
-        progressParams.topMargin = dp(2);
+        progressParams.topMargin = dp(6);
         mediaMirror.addView(mediaProgressRow, progressParams);
         mediaMirror.addView(controlGap,
                 new LinearLayout.LayoutParams(1, dp(8)));
@@ -337,11 +337,12 @@ public class MainActivity extends Activity {
                 new LinearLayout.LayoutParams(controlWidth, dp(40));
         controlAreaParams.gravity = Gravity.CENTER_HORIZONTAL;
 
-        mediaPrev = mediaIconButton(R.drawable.media_previous, "הקודם");
-        mediaPrev.setOnClickListener(v -> sendPrevious());
-        FrameLayout.LayoutParams prevParams =
+        // Physical order: Next on the left, Play/Pause in the center, Previous on the right.
+        mediaNext = mediaIconButton(R.drawable.media_next, "הבא");
+        mediaNext.setOnClickListener(v -> sendNext());
+        FrameLayout.LayoutParams nextParams =
                 new FrameLayout.LayoutParams(buttonSize, buttonSize, Gravity.LEFT | Gravity.CENTER_VERTICAL);
-        controls.addView(mediaPrev, prevParams);
+        controls.addView(mediaNext, nextParams);
 
         mediaPlayPause = mediaIconButton(R.drawable.media_play, "נגן");
         mediaPlayPause.setOnClickListener(v -> sendPlayPause());
@@ -349,11 +350,11 @@ public class MainActivity extends Activity {
                 new FrameLayout.LayoutParams(buttonSize, buttonSize, Gravity.CENTER);
         controls.addView(mediaPlayPause, playParams);
 
-        mediaNext = mediaIconButton(R.drawable.media_next, "הבא");
-        mediaNext.setOnClickListener(v -> sendNext());
-        FrameLayout.LayoutParams nextParams =
+        mediaPrev = mediaIconButton(R.drawable.media_previous, "הקודם");
+        mediaPrev.setOnClickListener(v -> sendPrevious());
+        FrameLayout.LayoutParams prevParams =
                 new FrameLayout.LayoutParams(buttonSize, buttonSize, Gravity.RIGHT | Gravity.CENTER_VERTICAL);
-        controls.addView(mediaNext, nextParams);
+        controls.addView(mediaPrev, prevParams);
 
         mediaMirror.addView(controls, controlAreaParams);
 
@@ -488,6 +489,28 @@ public class MainActivity extends Activity {
             mediaTitle.setTextSize(playerSize);
             mediaDetails.setTextSize(Math.max(11, playerSize - 3));
             mediaProgressText.setTextSize(Math.max(10, playerSize - 4));
+
+            // Scale the control buttons together with the selected player size.
+            float scale = Math.max(0.78f, Math.min(1.28f, playerSize / 17f));
+            int scaledButtonSize = Math.round(dp(40) * scale);
+            if (mediaPrev != null && mediaPlayPause != null && mediaNext != null) {
+                mediaPrev.getLayoutParams().width = scaledButtonSize;
+                mediaPrev.getLayoutParams().height = scaledButtonSize;
+                mediaPlayPause.getLayoutParams().width = scaledButtonSize;
+                mediaPlayPause.getLayoutParams().height = scaledButtonSize;
+                mediaNext.getLayoutParams().width = scaledButtonSize;
+                mediaNext.getLayoutParams().height = scaledButtonSize;
+                mediaPrev.requestLayout();
+                mediaPlayPause.requestLayout();
+                mediaNext.requestLayout();
+                View controls = (View) mediaPrev.getParent();
+                if (controls != null) {
+                    LinearLayout.LayoutParams cp = (LinearLayout.LayoutParams) controls.getLayoutParams();
+                    cp.height = scaledButtonSize;
+                    controls.setLayoutParams(cp);
+                }
+            }
+
             mediaTitle.setTextColor(color);
             mediaDetails.setTextColor(color);
             mediaProgressText.setTextColor(color);
@@ -1087,7 +1110,7 @@ public class MainActivity extends Activity {
             if (duration > 0) position = Math.min(position, duration);
             boolean showDetails = getBool("showDetails", true);
             mediaDetails.setText(lastArtist);
-            mediaDetails.setVisibility(showDetails && !lastArtist.isEmpty() ? View.VISIBLE : View.GONE);
+            mediaDetails.setVisibility(showDetails && !lastArtist.isEmpty() ? View.VISIBLE : View.INVISIBLE);
             boolean showProgress = getBool("showProgress", false) && duration > 0;
             mediaProgressRow.setVisibility(showProgress ? View.VISIBLE : View.GONE);
             mediaSeekBar.setVisibility(showProgress ? View.VISIBLE : View.GONE);
