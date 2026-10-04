@@ -61,6 +61,9 @@ public class MainActivity extends Activity {
     private final int dateTextColor = Color.rgb(220, 220, 220);
     private SharedPreferences prefs;
     private TextView settingsButton;
+    private FrameLayout stageView;
+    private LinearLayout clockBlockView;
+    private LinearLayout mediaHolderView;
     private TextView mediaDetails;
     private TextView mediaProgressText;
     private TextView mediaCurrentText;
@@ -146,9 +149,10 @@ public class MainActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER_HORIZONTAL);
         root.setBackgroundColor(Color.BLACK);
-        root.setPadding(dp(10), dp(6), dp(10), dp(4));
+        root.setPadding(dp(10), 0, dp(10), dp(4));
 
         FrameLayout stage = new FrameLayout(this);
+        stageView = stage;
         stage.setBackgroundColor(Color.BLACK);
         root.addView(stage, new LinearLayout.LayoutParams(-1, 0, 1f));
 
@@ -158,12 +162,13 @@ public class MainActivity extends Activity {
         settingsButton.setContentDescription("הגדרות");
         settingsButton.setOnClickListener(v -> showSettings());
         FrameLayout.LayoutParams settingsParams = new FrameLayout.LayoutParams(
-                dp(30), dp(34), Gravity.TOP | Gravity.RIGHT);
-        settingsParams.rightMargin = dp(2);
+                dp(30), dp(34), Gravity.TOP | Gravity.LEFT);
+        settingsParams.leftMargin = dp(2);
         settingsParams.topMargin = 0;
         stage.addView(settingsButton, settingsParams);
 
         LinearLayout clockBlock = new LinearLayout(this);
+        clockBlockView = clockBlock;
         clockBlock.setOrientation(LinearLayout.VERTICAL);
         clockBlock.setGravity(Gravity.CENTER_HORIZONTAL);
 
@@ -194,6 +199,7 @@ public class MainActivity extends Activity {
         stage.addView(clockBlock, new FrameLayout.LayoutParams(-1, initialClockBlockHeight, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
 
         LinearLayout mediaHolder = new LinearLayout(this);
+        mediaHolderView = mediaHolder;
         mediaHolder.setOrientation(LinearLayout.VERTICAL);
         mediaHolder.setGravity(Gravity.CENTER_HORIZONTAL);
         stage.addView(mediaHolder, new FrameLayout.LayoutParams(-1, -2));
@@ -203,7 +209,7 @@ public class MainActivity extends Activity {
 
         stage.post(() -> {
             applySettings();
-            updateScreenPositions(stage, clockBlock, mediaHolder);
+            updateScreenPositions(stageView, clockBlockView, mediaHolderView);
         });
         setContentView(root);
     }
@@ -637,7 +643,7 @@ public class MainActivity extends Activity {
             View parent = mediaMirror.getParent() instanceof View ? (View) mediaMirror.getParent() : null;
             if (parent != null && parent.getParent() instanceof FrameLayout) {
                 FrameLayout stage = (FrameLayout) parent.getParent();
-                updateScreenPositions(stage, stage.getChildAt(0), parent);
+                updateScreenPositions(stageView, clockBlockView, mediaHolderView);
             }
             scheduleAutoOff();
         }
@@ -774,7 +780,7 @@ public class MainActivity extends Activity {
         x.setChecked(getBool(k, d));
         x.setOnCheckedChangeListener((a, z) -> {
             try {
-                prefs.edit().putBoolean(k, z).apply();
+                prefs.edit().putBoolean(k, z).commit();
                 applySettings();
             } catch (Throwable ignored) {
             }
@@ -879,7 +885,7 @@ public class MainActivity extends Activity {
                                 e.putString(key, val);
                             }
 
-                            e.apply();
+                            e.commit();
                             applySettings();
                         } catch (Throwable ignored) {
                         }
@@ -1188,7 +1194,7 @@ public class MainActivity extends Activity {
             View parent = mediaMirror.getParent() instanceof View ? (View) mediaMirror.getParent() : null;
             if (parent != null && parent.getParent() instanceof FrameLayout) {
                 FrameLayout stage = (FrameLayout) parent.getParent();
-                stage.post(() -> updateScreenPositions(stage, stage.getChildAt(0), parent));
+                stage.post(() -> updateScreenPositions(stageView, clockBlockView, mediaHolderView));
             }
         } catch (Throwable ignored) {
             hideMediaMirror();
