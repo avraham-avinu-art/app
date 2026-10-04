@@ -321,8 +321,6 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams progressParams = new LinearLayout.LayoutParams(-1, dp(28));
         progressParams.topMargin = dp(0);
         mediaMirror.addView(mediaProgressRow, progressParams);
-        mediaMirror.addView(controlGap,
-                new LinearLayout.LayoutParams(1, dp(8)));
 
         FrameLayout controls = new FrameLayout(this);
         controls.setPadding(0, 0, 0, 0);
@@ -549,14 +547,7 @@ public class MainActivity extends Activity {
             mediaNext.setBackgroundColor(Color.TRANSPARENT);
             mediaPrev.setBackgroundColor(Color.TRANSPARENT);
             mediaPlayPause.setBackgroundColor(Color.TRANSPARENT);
-            if (lastMediaButton != null) {
-                lastMediaButton.setText("play\n⏻");
-                lastMediaButton.setTextColor(Color.WHITE);
-                lastMediaButton.setAlpha(0.50f);
-                lastMediaButton.setBackgroundColor(Color.TRANSPARENT);
-            }
         }
-    }
 
     private void showSettings() {
         try {
