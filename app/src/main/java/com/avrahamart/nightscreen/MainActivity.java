@@ -450,6 +450,14 @@ public class MainActivity extends Activity {
         }
     }
 
+    private int blendWithBlack(int color, float factor) {
+        float f = Math.max(0f, Math.min(1f, factor));
+        return Color.rgb(
+                Math.round(Color.red(color) * f),
+                Math.round(Color.green(color) * f),
+                Math.round(Color.blue(color) * f));
+    }
+
     private String formatMs(long ms) {
         long t = Math.max(0, ms / 1000);
         return String.format(Locale.US, "%d:%02d", (t / 60) % 60, t % 60);
@@ -491,7 +499,7 @@ public class MainActivity extends Activity {
             mediaProgressText.setTextSize(Math.max(10, playerSize - 4));
 
             // Scale the control buttons together with the selected player size.
-            float scale = Math.max(0.78f, Math.min(1.28f, playerSize / 17f));
+            float scale = Math.max(0.72f, Math.min(1.45f, playerSize / 17f));
             int scaledButtonSize = Math.round(dp(40) * scale);
             if (mediaPrev != null && mediaPlayPause != null && mediaNext != null) {
                 mediaPrev.getLayoutParams().width = scaledButtonSize;
@@ -502,6 +510,13 @@ public class MainActivity extends Activity {
                 mediaNext.getLayoutParams().height = scaledButtonSize;
                 mediaPrev.requestLayout();
                 mediaPlayPause.requestLayout();
+                mediaNext.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                mediaPlayPause.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                mediaPrev.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                int iconPadding = Math.max(dp(2), Math.round(dp(6) / scale));
+                mediaNext.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
+                mediaPlayPause.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
+                mediaPrev.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
                 mediaNext.requestLayout();
                 View controls = (View) mediaPrev.getParent();
                 if (controls != null) {
@@ -514,9 +529,12 @@ public class MainActivity extends Activity {
             mediaTitle.setTextColor(color);
             mediaDetails.setTextColor(color);
             mediaProgressText.setTextColor(color);
-            mediaSeekBar.setProgressTintList(android.content.res.ColorStateList.valueOf(Color.WHITE));
-            mediaSeekBar.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.rgb(105, 105, 105)));
-            mediaSeekBar.setThumbTintList(android.content.res.ColorStateList.valueOf(Color.WHITE));
+            mediaCurrentText.setTextColor(color);
+            mediaTotalText.setTextColor(color);
+            mediaSeekBar.setProgressTintList(android.content.res.ColorStateList.valueOf(color));
+            mediaSeekBar.setProgressBackgroundTintList(
+                    android.content.res.ColorStateList.valueOf(blendWithBlack(color, 0.48f)));
+            mediaSeekBar.setThumbTintList(android.content.res.ColorStateList.valueOf(color));
 
             boolean hasActiveSong = mediaController != null &&
                     mediaController.getMetadata() != null &&
@@ -795,70 +813,47 @@ public class MainActivity extends Activity {
 
     private void playLastMedia() {
         try {
-            MediaController controller =
-                    mediaController != null ? mediaController : lastKnownMediaController;
-
+            MediaController controller = null;
+            if (mediaSessionManager == null) {
+                mediaSessionManager = (MediaSessionManager)
+                        getSystemService(MEDIA_SESSION_SERVICE);
+            }
             if (mediaSessionManager != null) {
                 try {
-                    if (controller == null && Build.VERSION.SDK_INT >= 33) {
+                    if (Build.VERSION.SDK_INT >= 33) {
                         MediaSession.Token token = mediaSessionManager.getMediaKeyEventSession();
-                        if (token != null) {
-                            controller = new MediaController(this, token);
-                        }
+                        if (token != null) controller = new MediaController(this, token);
                     }
-                    if (controller == null) {
+                } catch (Throwable ignored) {}
+
+                if (controller == null) {
+                    try {
                         ComponentName listener =
                                 new ComponentName(this, SystemMediaNotificationListener.class);
-                        List<MediaController> sessions =
-                                mediaSessionManager.getActiveSessions(listener);
-                        controller = selectPlayableSession(sessions);
-                    }
-                    if (controller != null) {
-                        lastKnownMediaController = controller;
-                        if (mediaController == null ||
-                                !mediaController.getSessionToken().equals(controller.getSessionToken())) {
-                            attachMediaController(controller);
-                        }
-                    }
-                } catch (Throwable ignored) {
+                        controller = selectPlayableSession(
+                                mediaSessionManager.getActiveSessions(listener));
+                    } catch (Throwable ignored) {}
                 }
             }
 
             if (controller != null) {
-                MediaController.TransportControls controls = controller.getTransportControls();
-                if (controls != null) {
-                    controls.play();
-                    if (lastMediaButton != null) lastMediaButton.setVisibility(View.GONE);
-                    if (mediaPlayPause != null) {
-                        mediaPlayPause.setVisibility(View.VISIBLE);
-                        mediaPlayPause.setImageResource(R.drawable.media_play);
-                    }
-                    renderMediaMirror();
-                    return;
+                lastKnownMediaController = controller;
+                if (mediaController == null ||
+                        !mediaController.getSessionToken().equals(controller.getSessionToken())) {
+                    attachMediaController(controller);
                 }
+                try {
+                    MediaController.TransportControls controls = controller.getTransportControls();
+                    if (controls != null) {
+                        controls.play();
+                        handler.postDelayed(this::refreshSystemMediaMirror, 250L);
+                        return;
+                    }
+                } catch (Throwable ignored) {}
             }
 
-            // Final fallback: send the system media-play key. Android routes it
-            // to the last media-key session when the app's controller is unavailable.
-            try {
-                AudioManager audio = (AudioManager) getSystemService(AUDIO_SERVICE);
-                if (audio != null) {
-                    long nowMs = System.currentTimeMillis();
-                    audio.dispatchMediaKeyEvent(new KeyEvent(nowMs, nowMs,
-                            KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PLAY, 0));
-                    audio.dispatchMediaKeyEvent(new KeyEvent(nowMs, nowMs,
-                            KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PLAY, 0));
-                }
-            } catch (Throwable ignored) {
-            }
-            if (lastMediaButton != null) lastMediaButton.setVisibility(View.GONE);
-            if (mediaPlayPause != null) {
-                mediaPlayPause.setVisibility(View.VISIBLE);
-                mediaPlayPause.setImageResource(R.drawable.media_pause);
-            }
-            renderMediaMirror();
-        } catch (Throwable ignored) {
-        }
+            dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY);
+        } catch (Throwable ignored) {}
     }
 
     private MediaController selectPlayableSession(List<MediaController> sessions) {
@@ -1299,19 +1294,44 @@ public class MainActivity extends Activity {
     private void sendPrevious() {
         try {
             if (mediaController != null) {
-                mediaController.getTransportControls().skipToPrevious();
+                MediaController.TransportControls controls =
+                        mediaController.getTransportControls();
+                if (controls != null) {
+                    controls.skipToPrevious();
+                    handler.postDelayed(this::refreshSystemMediaMirror, 220L);
+                    return;
+                }
             }
-        } catch (Throwable ignored) {
-        }
+        } catch (Throwable ignored) {}
+        dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS);
     }
 
     private void sendNext() {
         try {
             if (mediaController != null) {
-                mediaController.getTransportControls().skipToNext();
+                MediaController.TransportControls controls =
+                        mediaController.getTransportControls();
+                if (controls != null) {
+                    controls.skipToNext();
+                    handler.postDelayed(this::refreshSystemMediaMirror, 220L);
+                    return;
+                }
             }
-        } catch (Throwable ignored) {
-        }
+        } catch (Throwable ignored) {}
+        dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_NEXT);
+    }
+
+    private void dispatchMediaKey(int keyCode) {
+        try {
+            AudioManager audio = (AudioManager) getSystemService(AUDIO_SERVICE);
+            if (audio == null) return;
+            long nowMs = System.currentTimeMillis();
+            audio.dispatchMediaKeyEvent(new KeyEvent(nowMs, nowMs,
+                    KeyEvent.ACTION_DOWN, keyCode, 0));
+            audio.dispatchMediaKeyEvent(new KeyEvent(nowMs, nowMs,
+                    KeyEvent.ACTION_UP, keyCode, 0));
+            handler.postDelayed(this::refreshSystemMediaMirror, 250L);
+        } catch (Throwable ignored) {}
     }
 
     private TextView mediaButton(String symbol) {
