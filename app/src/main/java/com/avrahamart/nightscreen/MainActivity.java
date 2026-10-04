@@ -244,16 +244,17 @@ public class MainActivity extends Activity {
         mediaMirror.setBackgroundColor(Color.BLACK);
         mediaMirror.setVisibility(View.GONE);
 
-        // Row 1: song title only. It scrolls automatically when it does not fit.
+        // Row 1: centered song title. Marquee is enabled only when the title
+        // is actually wider than the available screen width.
         mediaTitle = textView("", 17, Color.WHITE);
         mediaTitle.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         mediaTitle.setSingleLine(true);
-        mediaTitle.setEllipsize(android.text.TextUtils.TruncateAt.MARQUEE);
+        mediaTitle.setGravity(Gravity.CENTER);
+        mediaTitle.setEllipsize(TextUtils.TruncateAt.END);
         mediaTitle.setMarqueeRepeatLimit(-1);
         mediaTitle.setSelected(false);
-        mediaTitle.setHorizontallyScrolling(true);
-        mediaTitle.setGravity(Gravity.CENTER);
-        mediaTitle.setHorizontallyScrolling(true);
+        mediaTitle.setHorizontallyScrolling(false);
+        mediaTitle.setIncludeFontPadding(false);
         mediaMirror.addView(mediaTitle, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(38)));
 
@@ -324,14 +325,24 @@ public class MainActivity extends Activity {
         mediaNext.setOnClickListener(v -> sendNext());
         controls.addView(mediaNext, new LinearLayout.LayoutParams(dp(62), dp(52)));
 
-        mediaPlayPause = mediaButton("Ⅱ");
-        mediaPlayPause.setTextSize(34);
-        mediaPlayPause.setTypeface(Typeface.DEFAULT_BOLD);
+        mediaPlayPause = mediaButton("▶");
+        mediaPlayPause.setTextSize(26);
+        mediaPlayPause.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
         mediaPlayPause.setTextColor(Color.WHITE);
-        mediaPlayPause.setBackgroundColor(Color.TRANSPARENT);
         mediaPlayPause.setGravity(Gravity.CENTER);
+        mediaPlayPause.setPadding(dp(2), 0, 0, 0);
+        mediaPlayPause.setBackground(makePlayPauseBackground());
         mediaPlayPause.setOnClickListener(v -> sendPlayPause());
-        controls.addView(mediaPlayPause, new LinearLayout.LayoutParams(dp(62), dp(52)));
+        mediaPlayPause.setOnTouchListener((v, event) -> {
+            if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) {
+                v.setAlpha(0.65f);
+            } else if (event.getAction() == android.view.MotionEvent.ACTION_UP ||
+                       event.getAction() == android.view.MotionEvent.ACTION_CANCEL) {
+                v.setAlpha(1f);
+            }
+            return false;
+        });
+        controls.addView(mediaPlayPause, new LinearLayout.LayoutParams(dp(62), dp(54)));
 
         mediaPrev = mediaButton("|◀");
         mediaPrev.setTextSize(25);
@@ -369,6 +380,14 @@ public class MainActivity extends Activity {
         mirrorParams.gravity = Gravity.CENTER_HORIZONTAL;
         mirrorParams.bottomMargin = dp(6);
         root.addView(mediaMirror, mirrorParams);
+    }
+
+    private android.graphics.drawable.Drawable makePlayPauseBackground() {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.OVAL);
+        bg.setColor(Color.argb(150, 48, 48, 48));
+        bg.setStroke(dp(1), Color.argb(105, 255, 255, 255));
+        return bg;
     }
 
     private android.graphics.drawable.Drawable makeMediaButtonBackground() {
@@ -816,7 +835,7 @@ public class MainActivity extends Activity {
                     if (lastMediaButton != null) lastMediaButton.setVisibility(View.GONE);
                     if (mediaPlayPause != null) {
                         mediaPlayPause.setVisibility(View.VISIBLE);
-                        mediaPlayPause.setText("Ⅱ");
+                        mediaPlayPause.setText("▶");
                     }
                     renderMediaMirror();
                     return;
@@ -1075,31 +1094,7 @@ public class MainActivity extends Activity {
             title = removeFileExtension(title);
             mediaTitle.setText(title);
             stopTitleMarquee();
-            final String marqueeTitle = title;
-            mediaTitle.post(() -> {
-                try {
-                    float textWidth = mediaTitle.getPaint().measureText(marqueeTitle);
-                    float available = Math.max(0, mediaTitle.getWidth() - mediaTitle.getPaddingLeft() - mediaTitle.getPaddingRight());
-                    float threshold = mediaTitle.getPaint().measureText("XX");
-                    float overflow = textWidth - available;
-                    if (overflow > threshold) {
-                        mediaTitle.setEllipsize(null);
-                        mediaTitle.setHorizontallyScrolling(true);
-                        mediaTitle.setScrollX(0);
-                        titleMarqueeAnimator = ObjectAnimator.ofInt(
-                                mediaTitle, "scrollX", 0, Math.max(1, (int)Math.ceil(overflow)));
-                        long duration = Math.max(14000L, Math.min(30000L, (long)(overflow * 45L)));
-                        titleMarqueeAnimator.setDuration(duration);
-                        titleMarqueeAnimator.setRepeatMode(ObjectAnimator.REVERSE);
-                        titleMarqueeAnimator.setRepeatCount(ObjectAnimator.INFINITE);
-                        titleMarqueeAnimator.start();
-                    } else {
-                        mediaTitle.setEllipsize(TextUtils.TruncateAt.END);
-                        mediaTitle.setHorizontallyScrolling(false);
-                        mediaTitle.setScrollX(0);
-                    }
-                } catch (Throwable ignored) {}
-            });
+            mediaTitle.post(() -> updateTitleMarqueeIfNeeded());
             lastTitle = title;
             String artist = metadata == null ? "" : metadata.getString(MediaMetadata.METADATA_KEY_ARTIST);
             artist = artist == null ? "" : artist.trim();
@@ -1132,6 +1127,8 @@ public class MainActivity extends Activity {
             lastMediaButton.setVisibility(View.GONE);
             mediaPlayPause.setText(
                     playback == PlaybackState.STATE_PLAYING ? "Ⅱ" : "▶");
+            mediaPlayPause.setContentDescription(
+                    playback == PlaybackState.STATE_PLAYING ? "השהה" : "נגן");
 
             long actions = state.getActions();
             mediaPrev.setVisibility(
@@ -1206,6 +1203,33 @@ public class MainActivity extends Activity {
         return value;
     }
 
+    private void updateTitleMarqueeIfNeeded() {
+        if (mediaTitle == null) return;
+        try {
+            String value = mediaTitle.getText() == null ? "" : mediaTitle.getText().toString();
+            float textWidth = mediaTitle.getPaint().measureText(value);
+            float available = Math.max(0,
+                    mediaTitle.getWidth() - mediaTitle.getPaddingLeft() - mediaTitle.getPaddingRight());
+
+            if (!value.isEmpty() && textWidth > available + dp(2)) {
+                // Only now turn marquee on. Until this point the title stays
+                // perfectly centered and completely still.
+                mediaTitle.setGravity(Gravity.CENTER);
+                mediaTitle.setHorizontallyScrolling(true);
+                mediaTitle.setEllipsize(TextUtils.TruncateAt.MARQUEE);
+                mediaTitle.setMarqueeRepeatLimit(-1);
+                mediaTitle.setSelected(true);
+            } else {
+                mediaTitle.setGravity(Gravity.CENTER);
+                mediaTitle.setHorizontallyScrolling(false);
+                mediaTitle.setEllipsize(TextUtils.TruncateAt.END);
+                mediaTitle.setSelected(false);
+                mediaTitle.setScrollX(0);
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
     private void stopTitleMarquee() {
         try {
             if (titleMarqueeAnimator != null) {
@@ -1221,14 +1245,40 @@ public class MainActivity extends Activity {
 
     private void sendPlayPause() {
         try {
-            if (mediaController == null) return;
-            PlaybackState state = mediaController.getPlaybackState();
-            if (state != null && state.getState() == PlaybackState.STATE_PLAYING) {
-                mediaController.getTransportControls().pause();
-            } else {
-                mediaController.getTransportControls().play();
+            if (mediaController != null) {
+                PlaybackState state = mediaController.getPlaybackState();
+                if (state != null) {
+                    if (state.getState() == PlaybackState.STATE_PLAYING) {
+                        if ((state.getActions() & PlaybackState.ACTION_PAUSE) != 0) {
+                            mediaController.getTransportControls().pause();
+                            return;
+                        }
+                    } else {
+                        if ((state.getActions() & PlaybackState.ACTION_PLAY) != 0) {
+                            mediaController.getTransportControls().play();
+                            return;
+                        }
+                    }
+                }
             }
         } catch (Throwable ignored) {
+        }
+
+        // Some players expose media-key handling but not TransportControls.
+        try {
+            AudioManager audio = (AudioManager) getSystemService(AUDIO_SERVICE);
+            if (audio != null) {
+                long nowMs = System.currentTimeMillis();
+                audio.dispatchMediaKeyEvent(new KeyEvent(nowMs, nowMs,
+                        KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, 0));
+                audio.dispatchMediaKeyEvent(new KeyEvent(nowMs, nowMs,
+                        KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, 0));
+            }
+        } catch (Throwable ignored) {
+        }
+
+        if (mediaPlayPause != null) {
+            mediaPlayPause.postDelayed(this::renderMediaMirror, 180L);
         }
     }
 
