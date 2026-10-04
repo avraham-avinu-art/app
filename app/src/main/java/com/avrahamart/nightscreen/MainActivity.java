@@ -773,11 +773,31 @@ public class MainActivity extends Activity {
             final AlertDialog dialog = new AlertDialog.Builder(this).setView(scroll).create();
             done.setOnClickListener(v -> dialog.dismiss());
             settingsDialogOpen = true;
+
+            // The Activity itself is fullscreen/immersive. A child Dialog can inherit
+            // that window state on some Android/OEM versions, which steals the top-edge
+            // notification-shade gesture. Temporarily make the Activity a normal window
+            // before showing the settings dialog, then restore fullscreen after dismissal.
+            getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN);
+            getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
+            getWindow().getDecorView().setSystemUiVisibility(0);
+            if (Build.VERSION.SDK_INT >= 30) {
+                android.view.WindowInsetsController activityController =
+                        getWindow().getDecorView().getWindowInsetsController();
+                if (activityController != null) {
+                    activityController.show(android.view.WindowInsets.Type.statusBars()
+                            | android.view.WindowInsets.Type.navigationBars());
+                    activityController.setSystemBarsBehavior(
+                            android.view.WindowInsetsController.BEHAVIOR_DEFAULT);
+                }
+            }
+
             dialog.setOnDismissListener(d -> {
                 applySettings();
                 refreshSystemMediaMirror();
                 scheduleAutoOff();
                 settingsDialogOpen = false;
+                getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN);
                 hideSystemUi();
             });
 
