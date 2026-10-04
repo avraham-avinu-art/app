@@ -261,7 +261,7 @@ public class MainActivity extends Activity {
         mediaProgressRow.setOrientation(LinearLayout.HORIZONTAL);
         mediaProgressRow.setGravity(Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL);
         mediaProgressRow.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
-        mediaProgressRow.setPadding(dp(10), 0, dp(10), 0);
+        mediaProgressRow.setPadding(dp(4), 0, dp(4), 0);
         mediaProgressRow.setVisibility(View.GONE);
 
         mediaCurrentText = textView("0:00", 12, Color.WHITE);
@@ -270,12 +270,12 @@ public class MainActivity extends Activity {
         mediaCurrentText.setIncludeFontPadding(false);
         LinearLayout.LayoutParams currentParams =
                 new LinearLayout.LayoutParams(dp(48), dp(32));
-        currentParams.rightMargin = dp(10);
+        currentParams.rightMargin = dp(4);
         mediaProgressRow.addView(mediaCurrentText, currentParams);
 
         mediaSeekBar = new SeekBar(this);
         mediaSeekBar.setVisibility(View.GONE);
-        mediaSeekBar.setPadding(0, 0, 0, 0);
+        mediaSeekBar.setPadding(dp(7), 0, dp(7), 0);
         mediaSeekBar.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
         mediaSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -308,7 +308,7 @@ public class MainActivity extends Activity {
         mediaTotalText.setIncludeFontPadding(false);
         LinearLayout.LayoutParams totalParams =
                 new LinearLayout.LayoutParams(dp(48), dp(32));
-        totalParams.leftMargin = dp(10);
+        totalParams.leftMargin = dp(4);
         mediaProgressRow.addView(mediaTotalText, totalParams);
 
         // Tight vertical gap matching the supplied reference image.
@@ -1204,14 +1204,16 @@ public class MainActivity extends Activity {
                 mediaTitle.setSelected(false);
 
                 final int overflow = Math.max(1, (int)Math.ceil(textWidth - available));
+                mediaTitle.setScrollX(0);
                 titleMarqueeAnimator = ObjectAnimator.ofInt(
                         mediaTitle, "scrollX", 0, overflow);
-                long duration = Math.max(7000L,
-                        Math.min(18000L, 6500L + overflow * 18L));
+                long duration = Math.max(8000L,
+                        Math.min(20000L, 7000L + overflow * 20L));
                 titleMarqueeAnimator.setDuration(duration);
-                titleMarqueeAnimator.setStartDelay(1000L);
+                titleMarqueeAnimator.setStartDelay(1200L);
                 titleMarqueeAnimator.setRepeatMode(ObjectAnimator.REVERSE);
                 titleMarqueeAnimator.setRepeatCount(ObjectAnimator.INFINITE);
+                titleMarqueeAnimator.setInterpolator(new android.view.animation.LinearInterpolator());
                 titleMarqueeAnimator.start();
             } else {
                 mediaTitle.setGravity(Gravity.CENTER);
