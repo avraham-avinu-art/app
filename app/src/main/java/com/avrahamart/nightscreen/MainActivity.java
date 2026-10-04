@@ -251,7 +251,7 @@ public class MainActivity extends Activity {
             } else {
                 mp.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
                 int mediaH = Math.max(0, mediaHolder.getMeasuredHeight());
-                mp.topMargin = Math.max(0, Math.round(h * 0.67f - mediaH / 2f));
+                mp.topMargin = Math.max(0, Math.round(h * 0.58f - mediaH / 2f));
                 mp.bottomMargin = 0;
                 mp.height = FrameLayout.LayoutParams.WRAP_CONTENT;
             }
