@@ -259,7 +259,7 @@ public class MainActivity extends Activity {
 
         mediaProgressRow = new LinearLayout(this);
         mediaProgressRow.setOrientation(LinearLayout.HORIZONTAL);
-        mediaProgressRow.setGravity(Gravity.CENTER_VERTICAL);
+        mediaProgressRow.setGravity(Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL);
         mediaProgressRow.setPadding(0, 0, 0, 0);
         mediaProgressRow.setVisibility(View.GONE);
 
@@ -269,7 +269,7 @@ public class MainActivity extends Activity {
         mediaCurrentText.setIncludeFontPadding(false);
         LinearLayout.LayoutParams currentParams =
                 new LinearLayout.LayoutParams(dp(42), dp(32));
-        currentParams.rightMargin = dp(11);
+        currentParams.rightMargin = dp(14);
         mediaProgressRow.addView(mediaCurrentText, currentParams);
 
         mediaSeekBar = new SeekBar(this);
@@ -307,15 +307,15 @@ public class MainActivity extends Activity {
         mediaTotalText.setIncludeFontPadding(false);
         LinearLayout.LayoutParams totalParams =
                 new LinearLayout.LayoutParams(dp(42), dp(32));
-        totalParams.leftMargin = dp(11);
+        totalParams.leftMargin = dp(14);
         mediaProgressRow.addView(mediaTotalText, totalParams);
 
         // Tight vertical gap matching the supplied reference image.
         View controlGap = new View(this);
-        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(-1, dp(25));
+        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(-1, dp(22));
         titleParams.topMargin = dp(2);
         mediaMirror.addView(mediaTitle, titleParams);
-        LinearLayout.LayoutParams detailsParams = new LinearLayout.LayoutParams(-1, dp(20));
+        LinearLayout.LayoutParams detailsParams = new LinearLayout.LayoutParams(-1, dp(18));
         mediaMirror.addView(mediaDetails, detailsParams);
 
         LinearLayout.LayoutParams progressParams = new LinearLayout.LayoutParams(-1, dp(32));
@@ -331,20 +331,20 @@ public class MainActivity extends Activity {
 
         int controlWidth = Math.max(
                 dp(180),
-                Math.round(getResources().getDisplayMetrics().widthPixels * 0.56f));
+                Math.round(getResources().getDisplayMetrics().widthPixels * 0.48f));
         LinearLayout.LayoutParams controlAreaParams =
-                new LinearLayout.LayoutParams(controlWidth, dp(48));
+                new LinearLayout.LayoutParams(controlWidth, dp(44));
         controlAreaParams.gravity = Gravity.CENTER_HORIZONTAL;
 
         mediaPrev = new MediaControlView(this, MediaControlView.PREVIOUS);
         mediaPrev.setContentDescription("הקודם");
         mediaPrev.setOnClickListener(v -> sendPrevious());
-        controls.addView(mediaPrev, new LinearLayout.LayoutParams(0, dp(48), 1f));
+        controls.addView(mediaPrev, new LinearLayout.LayoutParams(0, dp(44), 1f));
 
         mediaPlayPause = new MediaControlView(this, MediaControlView.PLAY_PAUSE);
         mediaPlayPause.setContentDescription("נגן");
         mediaPlayPause.setOnClickListener(v -> sendPlayPause());
-        controls.addView(mediaPlayPause, new LinearLayout.LayoutParams(0, dp(64), 1f));
+        controls.addView(mediaPlayPause, new LinearLayout.LayoutParams(0, dp(44), 1f));
 
         mediaNext = new MediaControlView(this, MediaControlView.NEXT);
         mediaNext.setContentDescription("הבא");
@@ -385,13 +385,18 @@ public class MainActivity extends Activity {
         e.putBoolean("showGregorian", getBool("showGregorian", true));
         e.putBoolean("showHebrew", getBool("showHebrew", true));
         e.putBoolean("showPlayer", getBool("showPlayer", true));
-        e.putBoolean("showDetails", getBool("showDetails", false));
+        e.putBoolean("showDetails", getBool("showDetails", true));
         e.putBoolean("showProgress", getBool("showProgress", true));
         e.putBoolean("showLastMedia", getBool("showLastMedia", false));
         lastTitle = getString("lastTitle", lastTitle);
         lastArtist = getString("lastArtist", lastArtist);
 
-        if (!getBool("referenceLayoutV2Applied", false)) {
+        if (!getBool("referenceLayoutV3Applied", false)) {
+            e.putBoolean("showDetails", true);
+            e.putBoolean("showProgress", true);
+            e.putBoolean("frameEnabled", false);
+            e.putBoolean("referenceLayoutV3Applied", true);
+        } else if (!getBool("referenceLayoutV2Applied", false)) {
             e.putBoolean("frameEnabled", false);
             e.putBoolean("referenceLayoutV2Applied", true);
         } else {
@@ -1293,7 +1298,7 @@ public class MainActivity extends Activity {
         static final int NEXT = 2;
 
         private final int kind;
-        private boolean playing = false;
+        private boolean playing;
 
         MediaControlView(android.content.Context context, int kind) {
             super(context);
@@ -1316,64 +1321,56 @@ public class MainActivity extends Activity {
             float cy = getHeight() * 0.5f;
             float u = Math.min(getWidth(), getHeight());
 
-            android.graphics.Paint p = new android.graphics.Paint(
-                    android.graphics.Paint.ANTI_ALIAS_FLAG);
+            android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
             p.setColor(Color.WHITE);
             p.setStyle(android.graphics.Paint.Style.FILL);
 
-            float h = u * 0.43f;
-            float barW = u * 0.055f;
-            float triW = u * 0.20f;
-            float gap = u * 0.035f;
-
             if (kind == PREVIOUS) {
-                // ◀| : triangle points left, vertical bar is on the right.
+                // LEFT: ◀|  (triangle points left, bar on its right)
+                float h = u * 0.54f;
+                float triW = u * 0.22f;
+                float barW = u * 0.055f;
+                float gap = u * 0.025f;
                 float barLeft = cx + gap;
-                canvas.drawRect(barLeft, cy - h / 2f,
-                        barLeft + barW, cy + h / 2f, p);
+                canvas.drawRect(barLeft, cy - h/2, barLeft + barW, cy + h/2, p);
 
-                android.graphics.Path tri = new android.graphics.Path();
-                float pointX = cx - gap - triW;
-                float baseX = cx - gap;
-                tri.moveTo(pointX, cy);
-                tri.lineTo(baseX, cy - h / 2f);
-                tri.lineTo(baseX, cy + h / 2f);
-                tri.close();
-                canvas.drawPath(tri, p);
+                android.graphics.Path path = new android.graphics.Path();
+                float base = cx - gap;
+                path.moveTo(base - triW, cy);
+                path.lineTo(base, cy - h/2);
+                path.lineTo(base, cy + h/2);
+                path.close();
+                canvas.drawPath(path, p);
             } else if (kind == NEXT) {
-                // |▶ : vertical bar is on the left, triangle points right.
+                // RIGHT: |▶  (bar on left, triangle points right)
+                float h = u * 0.54f;
+                float triW = u * 0.22f;
+                float barW = u * 0.055f;
+                float gap = u * 0.025f;
                 float barLeft = cx - gap - barW;
-                canvas.drawRect(barLeft, cy - h / 2f,
-                        barLeft + barW, cy + h / 2f, p);
+                canvas.drawRect(barLeft, cy - h/2, barLeft + barW, cy + h/2, p);
 
-                android.graphics.Path tri = new android.graphics.Path();
-                float baseX = cx + gap;
-                float pointX = cx + gap + triW;
-                tri.moveTo(baseX, cy - h / 2f);
-                tri.lineTo(pointX, cy);
-                tri.lineTo(baseX, cy + h / 2f);
-                tri.close();
-                canvas.drawPath(tri, p);
+                android.graphics.Path path = new android.graphics.Path();
+                float base = cx + gap;
+                path.moveTo(base, cy - h/2);
+                path.lineTo(base + triW, cy);
+                path.lineTo(base, cy + h/2);
+                path.close();
+                canvas.drawPath(path, p);
+            } else if (playing) {
+                float h = u * 0.58f;
+                float w = u * 0.09f;
+                float gap = u * 0.08f;
+                canvas.drawRect(cx - gap/2 - w, cy - h/2, cx - gap/2, cy + h/2, p);
+                canvas.drawRect(cx + gap/2, cy - h/2, cx + gap/2 + w, cy + h/2, p);
             } else {
-                if (playing) {
-                    float ph = u * 0.48f;
-                    float pw = u * 0.09f;
-                    float pg = u * 0.08f;
-                    canvas.drawRect(cx - pg / 2f - pw, cy - ph / 2f,
-                            cx - pg / 2f, cy + ph / 2f, p);
-                    canvas.drawRect(cx + pg / 2f, cy - ph / 2f,
-                            cx + pg / 2f + pw, cy + ph / 2f, p);
-                } else {
-                    android.graphics.Path tri = new android.graphics.Path();
-                    float left = cx - u * 0.14f;
-                    float right = cx + u * 0.17f;
-                    float ph = u * 0.43f;
-                    tri.moveTo(left, cy - ph / 2f);
-                    tri.lineTo(right, cy);
-                    tri.lineTo(left, cy + ph / 2f);
-                    tri.close();
-                    canvas.drawPath(tri, p);
-                }
+                android.graphics.Path path = new android.graphics.Path();
+                float h = u * 0.54f;
+                path.moveTo(cx - u * 0.14f, cy - h/2);
+                path.lineTo(cx + u * 0.18f, cy);
+                path.lineTo(cx - u * 0.14f, cy + h/2);
+                path.close();
+                canvas.drawPath(path, p);
             }
         }
     }
