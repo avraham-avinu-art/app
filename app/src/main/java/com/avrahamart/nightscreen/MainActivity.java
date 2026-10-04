@@ -746,18 +746,57 @@ public class MainActivity extends Activity {
 
     private void playLastMedia() {
         try {
-            MediaController controller = mediaController != null ? mediaController : lastKnownMediaController;
-            if (controller == null) return;
-            MediaController.TransportControls controls =
-                    controller.getTransportControls();
-            if (controls != null) {
-                controls.play();
-                if (lastMediaButton != null) lastMediaButton.setVisibility(View.GONE);
-                if (mediaPlayPause != null) mediaPlayPause.setVisibility(View.VISIBLE);
-                renderMediaMirror();
+            MediaController controller =
+                    mediaController != null ? mediaController : lastKnownMediaController;
+
+            if (controller == null && mediaSessionManager != null) {
+                try {
+                    ComponentName listener =
+                            new ComponentName(this, SystemMediaNotificationListener.class);
+                    List<MediaController> sessions =
+                            mediaSessionManager.getActiveSessions(listener);
+                    controller = selectPlayableSession(sessions);
+                    if (controller != null) {
+                        lastKnownMediaController = controller;
+                        attachMediaController(controller);
+                    }
+                } catch (Throwable ignored) {
+                }
             }
+
+            if (controller == null) return;
+
+            MediaController.TransportControls controls = controller.getTransportControls();
+            if (controls == null) return;
+
+            controls.play();
+            if (lastMediaButton != null) lastMediaButton.setVisibility(View.GONE);
+            if (mediaPlayPause != null) {
+                mediaPlayPause.setVisibility(View.VISIBLE);
+                mediaPlayPause.setText("Ⅱ");
+            }
+            renderMediaMirror();
         } catch (Throwable ignored) {
         }
+    }
+
+    private MediaController selectPlayableSession(List<MediaController> sessions) {
+        if (sessions == null || sessions.isEmpty()) return null;
+
+        for (MediaController controller : sessions) {
+            try {
+                PlaybackState state = controller.getPlaybackState();
+                if (state != null &&
+                        (state.getState() == PlaybackState.STATE_PAUSED ||
+                         state.getState() == PlaybackState.STATE_PLAYING ||
+                         state.getState() == PlaybackState.STATE_BUFFERING)) {
+                    return controller;
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+
+        return sessions.get(0);
     }
 
     private void updateClock() {
@@ -842,11 +881,12 @@ public class MainActivity extends Activity {
 
             if (selected == null) {
                 hideMediaMirror();
-                if (getBool("showLastMedia", false) && !lastTitle.isEmpty()) {
+                if (getBool("showLastMedia", false)) {
                     mediaMirror.setVisibility(View.VISIBLE);
-                    mediaTitle.setText(lastTitle);
-                    mediaDetails.setText(lastArtist);
-                    mediaDetails.setVisibility(getBool("showDetails", false) ? View.VISIBLE : View.GONE);
+                    stopTitleMarquee();
+                    mediaTitle.setText("");
+                    mediaDetails.setText("");
+                    mediaDetails.setVisibility(View.GONE);
                     mediaProgressText.setVisibility(View.GONE);
                     mediaSeekBar.setVisibility(View.GONE);
                     mediaNext.setVisibility(View.GONE);
