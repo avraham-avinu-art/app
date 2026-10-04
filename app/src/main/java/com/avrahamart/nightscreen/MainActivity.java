@@ -192,7 +192,7 @@ public class MainActivity extends Activity {
         LinearLayout mediaHolder = new LinearLayout(this);
         mediaHolder.setOrientation(LinearLayout.VERTICAL);
         mediaHolder.setGravity(Gravity.CENTER_HORIZONTAL);
-        stage.addView(mediaHolder, new FrameLayout.LayoutParams(-1, -1));
+        stage.addView(mediaHolder, new FrameLayout.LayoutParams(-1, -2));
 
         buildMediaSetup(mediaHolder);
         buildSystemMediaMirror(mediaHolder);
@@ -1143,6 +1143,11 @@ public class MainActivity extends Activity {
 
             mediaMirror.setVisibility(getBool("showPlayer", true) ? View.VISIBLE : View.GONE);
             mediaMirror.requestLayout();
+            View parent = mediaMirror.getParent() instanceof View ? (View) mediaMirror.getParent() : null;
+            if (parent != null && parent.getParent() instanceof FrameLayout) {
+                FrameLayout stage = (FrameLayout) parent.getParent();
+                stage.post(() -> updateScreenPositions(stage, stage.getChildAt(0), parent));
+            }
         } catch (Throwable ignored) {
             hideMediaMirror();
         }
