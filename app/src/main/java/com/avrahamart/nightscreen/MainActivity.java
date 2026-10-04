@@ -85,6 +85,8 @@ public class MainActivity extends Activity {
     private MediaSessionManager mediaSessionManager;
     private MediaController mediaController;
     private MediaController.Callback mediaCallback;
+    private MediaSessionManager.OnActiveSessionsChangedListener activeSessionsListener;
+    private boolean activeSessionsListenerRegistered = false;
 
     private final Runnable ticker = new Runnable() {
         @Override public void run() {
@@ -122,6 +124,7 @@ public class MainActivity extends Activity {
             hideSystemUi();
             handler.removeCallbacks(ticker);
             handler.post(ticker);
+            registerActiveSessionsListener();
             handler.postDelayed(this::refreshSystemMediaMirror, 250L);
         } catch (Throwable t) {
             showFatalError(t);
@@ -131,6 +134,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         handler.removeCallbacks(ticker);
+        unregisterActiveSessionsListener();
         detachMediaController();
         super.onPause();
     }
@@ -139,6 +143,7 @@ public class MainActivity extends Activity {
     protected void onDestroy() {
         handler.removeCallbacks(ticker);
         handler.removeCallbacks(autoOffRunnable);
+        unregisterActiveSessionsListener();
         stopTitleMarquee();
         detachMediaController();
         super.onDestroy();
@@ -960,6 +965,50 @@ public class MainActivity extends Activity {
             case Calendar.FRIDAY: return "יום ו";
             default: return "יום שבת";
         }
+    }
+
+    private void registerActiveSessionsListener() {
+        if (Build.VERSION.SDK_INT < 21) return;
+        try {
+            if (mediaSessionManager == null) {
+                mediaSessionManager = (MediaSessionManager)
+                        getSystemService(MEDIA_SESSION_SERVICE);
+            }
+            if (mediaSessionManager == null || activeSessionsListenerRegistered) return;
+
+            final ComponentName listenerComponent = new ComponentName(
+                    this, SystemMediaNotificationListener.class);
+            activeSessionsListener = controllers -> {
+                // A media session can be created after the screen saver starts.
+                // Refresh immediately instead of waiting for the next lifecycle event.
+                handler.post(this::refreshSystemMediaMirror);
+            };
+            mediaSessionManager.addOnActiveSessionsChangedListener(
+                    activeSessionsListener,
+                    listenerComponent,
+                    handler);
+            activeSessionsListenerRegistered = true;
+        } catch (SecurityException ignored) {
+            activeSessionsListener = null;
+            activeSessionsListenerRegistered = false;
+        } catch (Throwable ignored) {
+            activeSessionsListener = null;
+            activeSessionsListenerRegistered = false;
+        }
+    }
+
+    private void unregisterActiveSessionsListener() {
+        if (mediaSessionManager == null || activeSessionsListener == null || !activeSessionsListenerRegistered) {
+            activeSessionsListener = null;
+            activeSessionsListenerRegistered = false;
+            return;
+        }
+        try {
+            mediaSessionManager.removeOnActiveSessionsChangedListener(activeSessionsListener);
+        } catch (Throwable ignored) {
+        }
+        activeSessionsListener = null;
+        activeSessionsListenerRegistered = false;
     }
 
     private void refreshSystemMediaMirror() {
